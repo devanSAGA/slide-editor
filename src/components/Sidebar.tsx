@@ -1,39 +1,59 @@
 import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
+import { FiPlus } from 'react-icons/fi';
 
 interface SidebarProps {
   isCollapsed: boolean;
   onToggle: () => void;
+  slides: Array<{ id: string }>;
+  onAddSlide: () => void;
+  onSlideClick: (index: number) => void;
 }
 
-export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
+export default function Sidebar({
+  isCollapsed,
+  onToggle,
+  slides,
+  onAddSlide,
+  onSlideClick,
+}: SidebarProps) {
   return (
     <div
-      className={`flex h-full flex-col border-r border-zinc-800/50 p-2 text-zinc-300 transition-all duration-300 ${
-        isCollapsed ? 'w-9' : 'w-[300px]'
+      className={`flex h-full flex-col border-r border-zinc-800/50 text-zinc-300 transition-all duration-300 ${
+        isCollapsed ? 'w-[52px]' : 'w-[300px]'
       }`}
     >
-      <div>
-        <button
-          onClick={onToggle}
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
+      <div className={`flex items-center justify-end ${isCollapsed ? 'p-4 pb-0' : 'p-4 pb-0'}`}>
+        <button onClick={onToggle} aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
           {isCollapsed ? (
-            <GoSidebarExpand
-              size={20}
-              className="text-zinc-400 hover:text-white"
-            />
+            <GoSidebarExpand size={20} className="text-zinc-400 hover:text-white" />
           ) : (
-            <GoSidebarCollapse
-              size={20}
-              className="text-zinc-400 hover:text-white"
-            />
+            <GoSidebarCollapse size={20} className="text-zinc-400 hover:text-white" />
           )}
         </button>
       </div>
       {!isCollapsed && (
-        <div className="mt-4 flex flex-1 flex-col overflow-auto">
-          <div className="text-sm">Sidebar Content</div>
-        </div>
+        <>
+          <div className="flex flex-1 flex-col gap-4 overflow-auto p-4">
+            {slides.map((slide, index) => (
+              <div
+                key={slide.id}
+                onClick={() => onSlideClick(index)}
+                className="flex aspect-video cursor-pointer items-center justify-center rounded-lg bg-zinc-800 transition-colors hover:bg-zinc-700"
+              >
+                <span className="text-2xl font-semibold text-zinc-400">{index + 1}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 border-t border-zinc-800/50 p-4">
+            <button
+              onClick={onAddSlide}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-700 px-4 py-2 text-sm text-zinc-200 transition-colors hover:bg-zinc-600"
+            >
+              <FiPlus size={16} />
+              New Slide
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
