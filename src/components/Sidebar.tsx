@@ -7,6 +7,7 @@ interface SidebarProps {
   slides: Array<{ id: string }>;
   onAddSlide: () => void;
   onSlideClick: (index: number) => void;
+  activeSlideIndex: number;
 }
 
 export default function Sidebar({
@@ -15,6 +16,7 @@ export default function Sidebar({
   slides,
   onAddSlide,
   onSlideClick,
+  activeSlideIndex,
 }: SidebarProps) {
   return (
     <div
@@ -38,9 +40,19 @@ export default function Sidebar({
               <div
                 key={slide.id}
                 onClick={() => onSlideClick(index)}
-                className="flex aspect-video cursor-pointer items-center justify-center rounded-lg bg-zinc-800 transition-colors hover:bg-zinc-700"
+                className={`flex aspect-video cursor-pointer items-center justify-center rounded-lg transition-all ${
+                  index === activeSlideIndex
+                    ? 'ring-2 ring-blue-800'
+                    : 'bg-zinc-800 hover:bg-zinc-700'
+                }`}
               >
-                <span className="text-2xl font-semibold text-zinc-400">{index + 1}</span>
+                <span
+                  className={`text-2xl font-semibold ${
+                    index === activeSlideIndex ? 'text-white' : 'text-zinc-400'
+                  }`}
+                >
+                  {index + 1}
+                </span>
               </div>
             ))}
           </div>

@@ -10,9 +10,11 @@ export default function SlideEditor() {
   const slideCountRef = useRef(0);
 
   const [slides, setSlides] = useState<Array<{ id: string }>>(() => {
-    const id = `${slideIdPrefix}-${slideCountRef.current++}`;
-    return [{ id }];
+    return Array.from({ length: 4 }, () => ({
+      id: `${slideIdPrefix}-${slideCountRef.current++}`,
+    }));
   });
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const contentRef = useRef<SlidesListHandle>(null);
 
   const addNewSlide = () => {
@@ -21,7 +23,12 @@ export default function SlideEditor() {
   };
 
   const handleSlideClick = (index: number) => {
+    setActiveSlideIndex(index);
     contentRef.current?.scrollToSlide(index);
+  };
+
+  const handleActiveSlideChange = (index: number) => {
+    setActiveSlideIndex(index);
   };
 
   return (
@@ -32,11 +39,12 @@ export default function SlideEditor() {
         slides={slides}
         onAddSlide={addNewSlide}
         onSlideClick={handleSlideClick}
+        activeSlideIndex={activeSlideIndex}
       />
 
       <div className="flex flex-1 flex-col gap-2 overflow-hidden p-2">
         <Header />
-        <Content ref={contentRef} slides={slides} />
+        <Content ref={contentRef} slides={slides} activeSlideIndex={activeSlideIndex} onActiveSlideChange={handleActiveSlideChange} />
       </div>
     </div>
   );
