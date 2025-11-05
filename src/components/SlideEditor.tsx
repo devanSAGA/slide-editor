@@ -31,6 +31,11 @@ export default function SlideEditor() {
     setActiveSlideIndex(index);
   };
 
+  const handleAddTextElement = () => {
+    // TODO: Implement text element creation logic
+    console.log('Add text element to slide:', activeSlideIndex);
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-zinc-950">
       <Sidebar
@@ -44,7 +49,7 @@ export default function SlideEditor() {
 
       <div className="flex flex-1 flex-col gap-2 overflow-hidden p-2">
         <Header />
-        <Content ref={contentRef} slides={slides} activeSlideIndex={activeSlideIndex} onActiveSlideChange={handleActiveSlideChange} />
+        <Content ref={contentRef} slides={slides} activeSlideIndex={activeSlideIndex} onActiveSlideChange={handleActiveSlideChange} onAddTextElement={handleAddTextElement} />
       </div>
     </div>
   );
