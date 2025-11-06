@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useRef, ReactNode } from 'react';
 import type { SlideData, TextElement } from '../types';
+import { ElementState } from '../types';
 import { SlidesListHandle } from '../components/SlidesList';
 
 const INITIAL_NUMBER_OF_SLIDES = 4;
@@ -18,6 +19,7 @@ interface SlideContextValue {
   // Element operations
   addTextElement: () => void;
   selectElement: (slideIndex: number, elementId: string | null) => void;
+  setElementState: (slideIndex: number, elementId: string, state: ElementState) => void;
   updateElement: (slideIndex: number, elementId: string, updates: Partial<TextElement>) => void;
 }
 
@@ -73,6 +75,7 @@ export function SlideProvider({ children }: SlideProviderProps) {
         color: '#e4e4e7',
         textAlign: 'left',
       },
+      state: ElementState.SELECTED, // New elements start in SELECTED state
       createdAt: Date.now(),
     };
 
@@ -91,9 +94,42 @@ export function SlideProvider({ children }: SlideProviderProps) {
 
   const selectElement = (slideIndex: number, elementId: string | null) => {
     setSlides(
-      slides.map((slide, index) =>
-        index === slideIndex ? { ...slide, selectedElementId: elementId } : slide
-      )
+      slides.map((slide, index) => {
+        if (index !== slideIndex) return slide;
+
+        return {
+          ...slide,
+          selectedElementId: elementId,
+          elements: slide.elements.map((el) => {
+            // Set selected element to SELECTED state
+            if (elementId && el.id === elementId && el.state === ElementState.DEFAULT) {
+              return { ...el, state: ElementState.SELECTED };
+            }
+            // Set all other elements to DEFAULT state
+            if (el.id !== elementId && el.state !== ElementState.DEFAULT) {
+              return { ...el, state: ElementState.DEFAULT };
+            }
+            return el;
+          }),
+        };
+      })
+    );
+  };
+
+  const setElementState = (slideIndex: number, elementId: string, state: ElementState) => {
+    setSlides(
+      slides.map((slide, index) => {
+        if (index !== slideIndex) return slide;
+
+        return {
+          ...slide,
+          // If transitioning to DEFAULT state (e.g., from EDITING), clear selection
+          selectedElementId: state === ElementState.DEFAULT ? null : slide.selectedElementId,
+          elements: slide.elements.map((el) =>
+            el.id === elementId ? { ...el, state } : el
+          ),
+        };
+      })
     );
   };
 
@@ -121,6 +157,7 @@ export function SlideProvider({ children }: SlideProviderProps) {
     setActiveSlideIndex,
     addTextElement,
     selectElement,
+    setElementState,
     updateElement,
   };
 
