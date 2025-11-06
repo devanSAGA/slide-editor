@@ -1,23 +1,14 @@
 import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 import { FiPlus } from 'react-icons/fi';
+import { useSlides } from '../contexts/SlideContext';
 
 interface SidebarProps {
   isCollapsed: boolean;
   onToggle: () => void;
-  slides: Array<{ id: string }>;
-  onAddSlide: () => void;
-  onSlideClick: (index: number) => void;
-  activeSlideIndex: number;
 }
 
-export default function Sidebar({
-  isCollapsed,
-  onToggle,
-  slides,
-  onAddSlide,
-  onSlideClick,
-  activeSlideIndex,
-}: SidebarProps) {
+export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
+  const { slides, activeSlideIndex, addSlide, selectSlide } = useSlides();
   return (
     <div
       className={`flex h-full flex-col border-r border-zinc-800/50 text-zinc-300 transition-all duration-300 ${
@@ -39,7 +30,7 @@ export default function Sidebar({
             {slides.map((slide, index) => (
               <div
                 key={slide.id}
-                onClick={() => onSlideClick(index)}
+                onClick={() => selectSlide(index)}
                 className={`flex aspect-video cursor-pointer items-center justify-center rounded-lg transition-all ${
                   index === activeSlideIndex
                     ? 'ring-2 ring-blue-800'
@@ -58,7 +49,7 @@ export default function Sidebar({
           </div>
           <div className="mt-2 border-t border-zinc-800/50 p-4">
             <button
-              onClick={onAddSlide}
+              onClick={addSlide}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-700 px-4 py-2 text-sm text-zinc-200 transition-colors hover:bg-zinc-600"
             >
               <FiPlus size={16} />

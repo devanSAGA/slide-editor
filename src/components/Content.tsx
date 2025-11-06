@@ -1,32 +1,23 @@
-import { forwardRef } from 'react';
-import SlidesList, { SlidesListHandle } from './SlidesList';
+import SlidesList from './SlidesList';
 import Toolbar from './Toolbar';
+import { useSlides } from '../contexts/SlideContext';
 
-interface ContentProps {
-  slides: Array<{ id: string }>;
-  activeSlideIndex: number;
-  onActiveSlideChange: (index: number) => void;
-  onAddTextElement: () => void;
-}
+export default function Content() {
+  const { slides, activeSlideIndex, contentRef, setActiveSlideIndex, addTextElement, selectElement, updateElement } = useSlides();
 
-const Content = forwardRef<SlidesListHandle, ContentProps>(
-  ({ slides, activeSlideIndex, onActiveSlideChange, onAddTextElement }, ref) => {
-    return (
-      <div className="relative flex flex-1 flex-col overflow-hidden rounded bg-zinc-900">
-        <div className="overflow-auto">
-          <SlidesList
-            ref={ref}
-            slides={slides}
-            activeSlideIndex={activeSlideIndex}
-            onActiveSlideChange={onActiveSlideChange}
-          />
-        </div>
-        <Toolbar onAddTextElement={onAddTextElement} />
+  return (
+    <div className="relative flex flex-1 flex-col overflow-hidden rounded bg-zinc-900">
+      <div className="overflow-auto">
+        <SlidesList
+          ref={contentRef}
+          slides={slides}
+          activeSlideIndex={activeSlideIndex}
+          onActiveSlideChange={setActiveSlideIndex}
+          onSelectElement={selectElement}
+          onUpdateElement={updateElement}
+        />
       </div>
-    );
-  }
-);
-
-Content.displayName = 'Content';
-
-export default Content;
+      <Toolbar onAddTextElement={addTextElement} />
+    </div>
+  );
+}
