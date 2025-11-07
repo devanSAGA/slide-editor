@@ -22,6 +22,9 @@ export default function Canvas({
   const canvasRef = useRef<HTMLDivElement>(null);
   const { selectElement, setElementState, updateElement } = useSlides();
 
+  // Defensive: ensure elements is always an array
+  const safeElements = Array.isArray(elements) ? elements : [];
+
   // Configure drag sensors with activation constraints
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -40,7 +43,7 @@ export default function Canvas({
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    const element = elements.find((el) => el.id === active.id);
+    const element = safeElements.find((el) => el.id === active.id);
 
     if (element && element.state === ElementState.DEFAULT) {
       // Dragging DEFAULT element → transition to SELECTED
@@ -53,7 +56,7 @@ export default function Canvas({
 
     if (!delta.x && !delta.y) return; // No movement
 
-    const element = elements.find((el) => el.id === active.id);
+    const element = safeElements.find((el) => el.id === active.id);
     if (!element || !canvasRef.current) return;
 
     // Get canvas bounds (excluding padding)
@@ -92,7 +95,7 @@ export default function Canvas({
         onClick={handleCanvasClick}
         style={{ minHeight: '768px' }}
       >
-        {elements.map((element) => (
+        {safeElements.map((element) => (
           <TextElementComponent
             key={element.id}
             element={element}

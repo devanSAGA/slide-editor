@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useRef, ReactNode } from 'react';
+import { createContext, useContext, useState, useRef, ReactNode, useEffect, useMemo } from 'react';
 import type { SlideData, TextElement } from '../types';
 import { ElementState } from '../types';
 import { SlidesListHandle } from '../components/SlidesList';
+import { useStorage, useMutation } from '../liveblocks.config';
 
 const INITIAL_NUMBER_OF_SLIDES = 4;
 
@@ -41,141 +42,196 @@ interface SlideProviderProps {
 }
 
 export function SlideProvider({ children }: SlideProviderProps) {
-  const [slides, setSlides] = useState<SlideData[]>(generateInitialSlides);
+  // Get slides from Liveblocks storage and normalize the data
+  const rawSlides = useStorage((root) => root.slides);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const contentRef = useRef<SlidesListHandle>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  const addSlide = () => {
+  // Normalize slides to ensure all required fields exist
+  // useMemo prevents creating new objects on every render, which would break IntersectionObserver
+  const slides: SlideData[] = useMemo(
+    () =>
+      rawSlides
+        ? rawSlides.map((slide) => ({
+            id: slide?.id || crypto.randomUUID(),
+            elements: Array.isArray(slide?.elements) ? slide.elements : [],
+            selectedElementId: slide?.selectedElementId ?? null,
+          }))
+        : [],
+    [rawSlides]
+  );
+
+  // Mutation to initialize slides
+  const initializeSlides = useMutation(({ storage }) => {
+    const currentSlides = storage.get('slides');
+    if (!currentSlides || currentSlides.length === 0) {
+      storage.set('slides', generateInitialSlides() as any);
+    }
+    setIsInitialized(true);
+  }, []);
+
+  // Initialize slides if empty - only after storage is loaded
+  useEffect(() => {
+    if (rawSlides !== null && !isInitialized && (!rawSlides || rawSlides.length === 0)) {
+      initializeSlides();
+    } else if (rawSlides !== null && rawSlides.length > 0) {
+      setIsInitialized(true);
+    }
+  }, [rawSlides, isInitialized, initializeSlides]);
+
+  // Mutation to add a new slide
+  const addSlide = useMutation(({ storage }) => {
     const newSlide: SlideData = {
       id: crypto.randomUUID(),
       elements: [],
       selectedElementId: null,
     };
-    setSlides([...slides, newSlide]);
-  };
+    const currentSlides = storage.get('slides') || [];
+    storage.set('slides', [...currentSlides, newSlide] as any);
+  }, []);
 
-  const deleteSlide = (index: number) => {
-    // Don't delete if it's the last slide
-    if (slides.length <= 1) return;
+  // Mutation to delete a slide
+  const deleteSlide = useMutation(
+    ({ storage }, index: number) => {
+      const currentSlides = storage.get('slides') || [];
+      // Don't delete if it's the last slide
+      if (currentSlides.length <= 1) return;
 
-    const newSlides = slides.filter((_, i) => i !== index);
-    setSlides(newSlides);
+      const newSlides = currentSlides.filter((_, i) => i !== index);
+      storage.set('slides', newSlides as any);
 
-    // Adjust active slide index if needed
-    if (activeSlideIndex >= newSlides.length) {
-      setActiveSlideIndex(newSlides.length - 1);
-    } else if (activeSlideIndex > index) {
-      setActiveSlideIndex(activeSlideIndex - 1);
-    }
-  };
+      // Adjust active slide index if needed
+      if (activeSlideIndex >= newSlides.length) {
+        setActiveSlideIndex(newSlides.length - 1);
+      } else if (activeSlideIndex > index) {
+        setActiveSlideIndex(activeSlideIndex - 1);
+      }
+    },
+    [activeSlideIndex]
+  );
 
   const selectSlide = (index: number) => {
     setActiveSlideIndex(index);
     contentRef.current?.scrollToSlide(index);
   };
 
-  const addTextElement = () => {
-    const newElementId = `text-${Date.now()}`;
-    const newElement: TextElement = {
-      id: newElementId,
-      type: 'text',
-      content: 'Double click to edit',
-      transform: {
-        x: 300, // Center horizontally (approximate)
-        y: 200, // Center vertically (approximate)
-        width: 200,
-        height: 50,
-      },
-      style: {
-        fontSize: 16,
-        fontWeight: 'normal',
-        color: '#e4e4e7',
-        textAlign: 'left',
-      },
-      state: ElementState.SELECTED, // New elements start in SELECTED state
-      createdAt: Date.now(),
-    };
+  // Mutation to add a text element
+  const addTextElement = useMutation(
+    ({ storage }) => {
+      const newElementId = `text-${Date.now()}`;
+      const newElement: TextElement = {
+        id: newElementId,
+        type: 'text',
+        content: 'Double click to edit',
+        transform: {
+          x: 300,
+          y: 200,
+          width: 200,
+          height: 50,
+        },
+        style: {
+          fontSize: 16,
+          fontWeight: 'normal',
+          color: '#e4e4e7',
+          textAlign: 'left',
+        },
+        state: ElementState.SELECTED,
+        createdAt: Date.now(),
+      };
 
-    setSlides(
-      slides.map((slide, index) =>
+      const currentSlides = storage.get('slides') || [];
+      const updatedSlides = currentSlides.map((slide, index) =>
         index === activeSlideIndex
           ? {
               ...slide,
-              elements: [...slide.elements, newElement],
-              selectedElementId: newElementId, // Auto-select the new element
+              elements: [...(slide.elements || []), newElement],
+              selectedElementId: newElementId,
             }
           : slide
-      )
-    );
-  };
+      );
+      storage.set('slides', updatedSlides as any);
+    },
+    [activeSlideIndex]
+  );
 
-  const deleteElement = (slideIndex: number, elementId: string) => {
-    setSlides(
-      slides.map((slide, index) =>
-        index === slideIndex
-          ? {
-              ...slide,
-              elements: slide.elements.filter((el) => el.id !== elementId),
-              selectedElementId: slide.selectedElementId === elementId ? null : slide.selectedElementId,
-            }
-          : slide
-      )
-    );
-  };
+  // Mutation to delete an element
+  const deleteElement = useMutation(({ storage }, slideIndex: number, elementId: string) => {
+    const currentSlides = storage.get('slides') || [];
+    const updatedSlides = currentSlides.map((slide, index) => {
+      if (index !== slideIndex) return slide;
 
-  const selectElement = (slideIndex: number, elementId: string | null) => {
-    setSlides(
-      slides.map((slide, index) => {
+      return {
+        ...slide,
+        elements: (slide.elements || []).filter((el) => el.id !== elementId),
+        selectedElementId: slide.selectedElementId === elementId ? null : slide.selectedElementId,
+      };
+    });
+    storage.set('slides', updatedSlides as any);
+  }, []);
+
+  // Mutation to select an element
+  const selectElement = useMutation(
+    ({ storage }, slideIndex: number, elementId: string | null) => {
+      const currentSlides = storage.get('slides') || [];
+      const updatedSlides = currentSlides.map((slide, index) => {
         if (index !== slideIndex) return slide;
 
         return {
           ...slide,
           selectedElementId: elementId,
-          elements: slide.elements.map((el) => {
-            // Set selected element to SELECTED state
+          elements: (slide.elements || []).map((el) => {
             if (elementId && el.id === elementId && el.state === ElementState.DEFAULT) {
               return { ...el, state: ElementState.SELECTED };
             }
-            // Set all other elements to DEFAULT state
             if (el.id !== elementId && el.state !== ElementState.DEFAULT) {
               return { ...el, state: ElementState.DEFAULT };
             }
             return el;
           }),
         };
-      })
-    );
-  };
+      });
+      storage.set('slides', updatedSlides as any);
+    },
+    []
+  );
 
-  const setElementState = (slideIndex: number, elementId: string, state: ElementState) => {
-    setSlides(
-      slides.map((slide, index) => {
+  // Mutation to set element state
+  const setElementState = useMutation(
+    ({ storage }, slideIndex: number, elementId: string, state: ElementState) => {
+      const currentSlides = storage.get('slides') || [];
+      const updatedSlides = currentSlides.map((slide, index) => {
         if (index !== slideIndex) return slide;
 
         return {
           ...slide,
-          // If transitioning to DEFAULT state (e.g., from EDITING), clear selection
           selectedElementId: state === ElementState.DEFAULT ? null : slide.selectedElementId,
-          elements: slide.elements.map((el) => (el.id === elementId ? { ...el, state } : el)),
+          elements: (slide.elements || []).map((el) => (el.id === elementId ? { ...el, state } : el)),
         };
-      })
-    );
-  };
+      });
+      storage.set('slides', updatedSlides as any);
+    },
+    []
+  );
 
-  const updateElement = (slideIndex: number, elementId: string, updates: Partial<TextElement>) => {
-    setSlides(
-      slides.map((slide, index) =>
+  // Mutation to update an element
+  const updateElement = useMutation(
+    ({ storage }, slideIndex: number, elementId: string, updates: Partial<TextElement>) => {
+      const currentSlides = storage.get('slides') || [];
+      const updatedSlides = currentSlides.map((slide, index) =>
         index === slideIndex
           ? {
               ...slide,
-              elements: slide.elements.map((el) =>
+              elements: (slide.elements || []).map((el) =>
                 el.id === elementId ? { ...el, ...updates } : el
               ),
             }
           : slide
-      )
-    );
-  };
+      );
+      storage.set('slides', updatedSlides as any);
+    },
+    []
+  );
 
   const value: SlideContextValue = {
     slides,

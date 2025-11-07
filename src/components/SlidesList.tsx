@@ -58,21 +58,24 @@ const SlidesList = forwardRef<SlidesListHandle, SlidesListProps>(
     }));
 
     // Memoize the callback to prevent unnecessary observer recreation
-    const handleIntersection = useCallback((entries: IntersectionObserverEntry[]) => {
-      if (isProgrammaticScrollRef.current) {
-        return;
-      }
-
-      // Only process entries that are becoming more visible (entering)
-      entries.forEach((entry) => {
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-          const index = slideRefs.current.findIndex((el) => el === entry.target);
-          if (index !== -1) {
-            onActiveSlideChange(index);
-          }
+    const handleIntersection = useCallback(
+      (entries: IntersectionObserverEntry[]) => {
+        if (isProgrammaticScrollRef.current) {
+          return;
         }
-      });
-    }, [onActiveSlideChange]);
+
+        // Only process entries that are becoming more visible (entering)
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+            const index = slideRefs.current.findIndex((el) => el === entry.target);
+            if (index !== -1) {
+              onActiveSlideChange(index);
+            }
+          }
+        });
+      },
+      [onActiveSlideChange]
+    );
 
     useEffect(() => {
       const observerOptions = {
@@ -108,7 +111,7 @@ const SlidesList = forwardRef<SlidesListHandle, SlidesListProps>(
     };
 
     return (
-      <div ref={containerRef} className="flex flex-col items-center gap-4 p-4">
+      <div ref={containerRef} className="flex flex-col items-center gap-16 p-4">
         {slides.map((slide, index) => (
           <Slide
             key={slide.id}
