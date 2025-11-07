@@ -9,15 +9,17 @@ interface SlideContextValue {
   // State
   slides: SlideData[];
   activeSlideIndex: number;
-  contentRef: React.RefObject<SlidesListHandle>;
+  contentRef: React.RefObject<SlidesListHandle | null>;
 
   // Slide operations
   addSlide: () => void;
+  deleteSlide: (index: number) => void;
   selectSlide: (index: number) => void;
   setActiveSlideIndex: (index: number) => void;
 
   // Element operations
   addTextElement: () => void;
+  deleteElement: (slideIndex: number, elementId: string) => void;
   selectElement: (slideIndex: number, elementId: string | null) => void;
   setElementState: (slideIndex: number, elementId: string, state: ElementState) => void;
   updateElement: (slideIndex: number, elementId: string, updates: Partial<TextElement>) => void;
@@ -52,6 +54,21 @@ export function SlideProvider({ children }: SlideProviderProps) {
     setSlides([...slides, newSlide]);
   };
 
+  const deleteSlide = (index: number) => {
+    // Don't delete if it's the last slide
+    if (slides.length <= 1) return;
+
+    const newSlides = slides.filter((_, i) => i !== index);
+    setSlides(newSlides);
+
+    // Adjust active slide index if needed
+    if (activeSlideIndex >= newSlides.length) {
+      setActiveSlideIndex(newSlides.length - 1);
+    } else if (activeSlideIndex > index) {
+      setActiveSlideIndex(activeSlideIndex - 1);
+    }
+  };
+
   const selectSlide = (index: number) => {
     setActiveSlideIndex(index);
     contentRef.current?.scrollToSlide(index);
@@ -70,7 +87,7 @@ export function SlideProvider({ children }: SlideProviderProps) {
         height: 50,
       },
       style: {
-        fontSize: 24,
+        fontSize: 16,
         fontWeight: 'normal',
         color: '#e4e4e7',
         textAlign: 'left',
@@ -86,6 +103,20 @@ export function SlideProvider({ children }: SlideProviderProps) {
               ...slide,
               elements: [...slide.elements, newElement],
               selectedElementId: newElementId, // Auto-select the new element
+            }
+          : slide
+      )
+    );
+  };
+
+  const deleteElement = (slideIndex: number, elementId: string) => {
+    setSlides(
+      slides.map((slide, index) =>
+        index === slideIndex
+          ? {
+              ...slide,
+              elements: slide.elements.filter((el) => el.id !== elementId),
+              selectedElementId: slide.selectedElementId === elementId ? null : slide.selectedElementId,
             }
           : slide
       )
@@ -125,9 +156,7 @@ export function SlideProvider({ children }: SlideProviderProps) {
           ...slide,
           // If transitioning to DEFAULT state (e.g., from EDITING), clear selection
           selectedElementId: state === ElementState.DEFAULT ? null : slide.selectedElementId,
-          elements: slide.elements.map((el) =>
-            el.id === elementId ? { ...el, state } : el
-          ),
+          elements: slide.elements.map((el) => (el.id === elementId ? { ...el, state } : el)),
         };
       })
     );
@@ -153,9 +182,11 @@ export function SlideProvider({ children }: SlideProviderProps) {
     activeSlideIndex,
     contentRef,
     addSlide,
+    deleteSlide,
     selectSlide,
     setActiveSlideIndex,
     addTextElement,
+    deleteElement,
     selectElement,
     setElementState,
     updateElement,

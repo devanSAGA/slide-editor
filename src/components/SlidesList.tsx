@@ -1,15 +1,11 @@
 import { useRef, useImperativeHandle, forwardRef, useEffect, useCallback } from 'react';
 import Slide from './Slide';
-import type { SlideData, TextElement } from '../types';
-import { ElementState } from '../types';
+import type { SlideData } from '../types';
 
 interface SlidesListProps {
   slides: SlideData[];
   activeSlideIndex: number;
   onActiveSlideChange: (index: number) => void;
-  onSelectElement: (slideIndex: number, elementId: string | null) => void;
-  onSetElementState: (slideIndex: number, elementId: string, state: ElementState) => void;
-  onUpdateElement: (slideIndex: number, elementId: string, updates: Partial<TextElement>) => void;
 }
 
 export interface SlidesListHandle {
@@ -17,7 +13,7 @@ export interface SlidesListHandle {
 }
 
 const SlidesList = forwardRef<SlidesListHandle, SlidesListProps>(
-  ({ slides, activeSlideIndex, onActiveSlideChange, onSelectElement, onSetElementState, onUpdateElement }, ref) => {
+  ({ slides, activeSlideIndex, onActiveSlideChange }, ref) => {
     const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
     const containerRef = useRef<HTMLDivElement>(null);
     const isProgrammaticScrollRef = useRef(false);
@@ -123,9 +119,6 @@ const SlidesList = forwardRef<SlidesListHandle, SlidesListProps>(
             onClick={() => handleSlideClick(index)}
             elements={slide.elements}
             selectedElementId={slide.selectedElementId}
-            onSelectElement={(elementId) => onSelectElement(index, elementId)}
-            onSetElementState={(elementId, state) => onSetElementState(index, elementId, state)}
-            onUpdateElement={(elementId, updates) => onUpdateElement(index, elementId, updates)}
             slideIndex={index}
           />
         ))}

@@ -1,5 +1,6 @@
 import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 import { FiPlus } from 'react-icons/fi';
+import { AiOutlineDelete } from 'react-icons/ai';
 import { useSlides } from '../contexts/SlideContext';
 import Button from './Button';
 import Tooltip from './Tooltip';
@@ -10,7 +11,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
-  const { slides, activeSlideIndex, addSlide, selectSlide } = useSlides();
+  const { slides, activeSlideIndex, addSlide, deleteSlide, selectSlide } = useSlides();
   return (
     <div
       className={`flex h-full flex-col border-r border-zinc-800/50 text-zinc-300 transition-all duration-300 ${
@@ -35,12 +36,12 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             {slides.map((slide, index) => (
               <div
                 key={slide.id}
-                onClick={() => selectSlide(index)}
-                className={`flex aspect-video cursor-pointer items-center justify-center rounded-lg transition-all ${
+                className={`group relative flex aspect-video cursor-pointer items-center justify-center rounded-lg transition-all ${
                   index === activeSlideIndex
                     ? 'ring-2 ring-blue-800'
                     : 'bg-zinc-800 hover:bg-zinc-700'
                 }`}
+                onClick={() => selectSlide(index)}
               >
                 <span
                   className={`text-2xl font-semibold ${
@@ -49,6 +50,23 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 >
                   {index + 1}
                 </span>
+                {slides.length > 1 && (
+                  <div className="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <Tooltip content="Delete slide" side="left">
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteSlide(index);
+                        }}
+                        aria-label="Delete slide"
+                      >
+                        <AiOutlineDelete size={16} />
+                      </Button>
+                    </Tooltip>
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -3,7 +3,7 @@ import Toolbar from './Toolbar';
 import { useSlides } from '../contexts/SlideContext';
 
 export default function Content() {
-  const { slides, activeSlideIndex, contentRef, setActiveSlideIndex, addTextElement, selectElement, setElementState, updateElement } = useSlides();
+  const { slides, activeSlideIndex, contentRef, setActiveSlideIndex, addTextElement } = useSlides();
 
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden rounded bg-zinc-900">
@@ -13,9 +13,6 @@ export default function Content() {
           slides={slides}
           activeSlideIndex={activeSlideIndex}
           onActiveSlideChange={setActiveSlideIndex}
-          onSelectElement={selectElement}
-          onSetElementState={setElementState}
-          onUpdateElement={updateElement}
         />
       </div>
       <Toolbar onAddTextElement={addTextElement} />

@@ -4,13 +4,11 @@ import { restrictToParentElement } from '@dnd-kit/modifiers';
 import TextElementComponent from './TextElement';
 import type { TextElement } from '../types';
 import { ElementState } from '../types';
+import { useSlides } from '../contexts/SlideContext';
 
 interface CanvasProps {
   elements: TextElement[];
   selectedElementId: string | null;
-  onSelectElement: (id: string | null) => void;
-  onSetElementState: (id: string, state: ElementState) => void;
-  onUpdateElement: (id: string, updates: Partial<TextElement>) => void;
   isActive: boolean;
   slideIndex: number;
 }
@@ -18,13 +16,11 @@ interface CanvasProps {
 export default function Canvas({
   elements,
   selectedElementId,
-  onSelectElement,
-  onSetElementState,
-  onUpdateElement,
   isActive,
   slideIndex,
 }: CanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
+  const { selectElement, setElementState, updateElement } = useSlides();
 
   // Configure drag sensors with activation constraints
   const sensors = useSensors(
@@ -38,7 +34,7 @@ export default function Canvas({
   const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget && isActive) {
       e.stopPropagation();
-      onSelectElement(null);
+      selectElement(slideIndex, null);
     }
   };
 
@@ -48,7 +44,7 @@ export default function Canvas({
 
     if (element && element.state === ElementState.DEFAULT) {
       // Dragging DEFAULT element → transition to SELECTED
-      onSetElementState(element.id, ElementState.SELECTED);
+      setElementState(slideIndex, element.id, ElementState.SELECTED);
     }
   };
 
@@ -74,7 +70,7 @@ export default function Canvas({
     newX = Math.max(0, Math.min(newX, maxWidth - element.transform.width));
     newY = Math.max(0, Math.min(newY, maxHeight - element.transform.height));
 
-    onUpdateElement(element.id, {
+    updateElement(slideIndex, element.id, {
       transform: {
         ...element.transform,
         x: newX,
@@ -101,8 +97,6 @@ export default function Canvas({
             key={element.id}
             element={element}
             isActive={isActive}
-            onSetState={(state) => onSetElementState(element.id, state)}
-            onUpdate={(updates) => onUpdateElement(element.id, updates)}
             slideIndex={slideIndex}
           />
         ))}

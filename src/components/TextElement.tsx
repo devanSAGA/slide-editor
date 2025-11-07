@@ -1,14 +1,16 @@
 import { useRef, useEffect } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
+import { AiOutlineDelete } from 'react-icons/ai';
 import type { TextElement } from '../types';
 import { ElementState } from '../types';
+import Button from './Button';
+import Tooltip from './Tooltip';
+import { useSlides } from '../contexts/SlideContext';
 
 interface TextElementProps {
   element: TextElement;
   isActive: boolean;
-  onSetState: (state: ElementState) => void;
-  onUpdate: (updates: Partial<TextElement>) => void;
   slideIndex: number;
 }
 
@@ -21,12 +23,11 @@ interface TextElementProps {
 export default function TextElement({
   element,
   isActive,
-  onSetState,
-  onUpdate,
   slideIndex,
 }: TextElementProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const clickTimeoutRef = useRef<number | null>(null);
+  const { deleteElement, setElementState, updateElement } = useSlides();
 
   const isEditing = element.state === ElementState.EDITING;
   const isSelected = element.state === ElementState.SELECTED;
@@ -87,10 +88,10 @@ export default function TextElement({
     clickTimeoutRef.current = setTimeout(() => {
       if (element.state === ElementState.DEFAULT) {
         // DEFAULT → SELECTED
-        onSetState(ElementState.SELECTED);
+        setElementState(slideIndex, element.id, ElementState.SELECTED);
       } else if (element.state === ElementState.SELECTED) {
         // SELECTED → EDITING
-        onSetState(ElementState.EDITING);
+        setElementState(slideIndex, element.id, ElementState.EDITING);
       }
       clickTimeoutRef.current = null;
     }, 200);
@@ -107,18 +108,18 @@ export default function TextElement({
     }
 
     // DEFAULT → EDITING or SELECTED → EDITING
-    onSetState(ElementState.EDITING);
+    setElementState(slideIndex, element.id, ElementState.EDITING);
   };
 
   const handleBlur = () => {
     // Transition EDITING → DEFAULT (content is already saved via onChange)
-    onSetState(ElementState.DEFAULT);
+    setElementState(slideIndex, element.id, ElementState.DEFAULT);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       // Exit edit mode without further changes
-      onSetState(ElementState.DEFAULT);
+      setElementState(slideIndex, element.id, ElementState.DEFAULT);
     } else if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       // Trigger blur which will transition state
@@ -128,7 +129,7 @@ export default function TextElement({
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     // Update parent state immediately as user types
-    onUpdate({ content: e.target.value });
+    updateElement(slideIndex, element.id, { content: e.target.value });
   };
 
   return (
@@ -137,7 +138,7 @@ export default function TextElement({
       style={style}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
-      className={`rounded px-2 py-1 ${
+      className={`group relative rounded px-2 py-1 ${
         isSelected && isActive
           ? 'bg-blue-500/10 ring-2 ring-blue-500'
           : isEditing
@@ -147,6 +148,25 @@ export default function TextElement({
       {...attributes}
       {...listeners}
     >
+      {/* Delete button - show when selected and active */}
+      {isSelected && isActive && !isEditing && (
+        <Tooltip content="Delete element" side="top">
+          <Button
+            variant="destructive"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteElement(slideIndex, element.id);
+            }}
+            aria-label="Delete element"
+            className="absolute z-10 h-7 w-7 rounded-full bg-red-500/90 p-0 text-white shadow-lg hover:bg-red-600 hover:text-white"
+            style={{ right: '-12px', top: '-12px' }}
+          >
+            <AiOutlineDelete size={14} />
+          </Button>
+        </Tooltip>
+      )}
+
       {isEditing ? (
         <textarea
           ref={textareaRef}
