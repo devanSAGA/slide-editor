@@ -1,3 +1,5 @@
+import { useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 import { FiPlus } from 'react-icons/fi';
 import { AiOutlineDelete } from 'react-icons/ai';
@@ -12,6 +14,17 @@ interface SidebarProps {
 
 export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const { slides, activeSlideIndex, addSlide, deleteSlide, selectSlide } = useSlides();
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  // Calculate item height: aspect-video (16:9) with 208px width (240-32 for padding)
+  // 208 / 16 * 9 = 117px + 16px gap = 133px per item
+  const virtualizer = useVirtualizer({
+    count: slides.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 133,
+    overscan: 2,
+  });
+
   return (
     <div
       className={`flex h-full flex-col border-r border-zinc-800/50 text-zinc-300 transition-all duration-300 ${
@@ -32,43 +45,66 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
       </div>
       {!isCollapsed && (
         <>
-          <div className="flex flex-1 flex-col gap-4 overflow-auto p-4">
-            {slides.map((slide, index) => (
-              <div
-                key={slide.id}
-                className={`group relative flex aspect-video cursor-pointer items-center justify-center rounded-lg transition-all ${
-                  index === activeSlideIndex
-                    ? 'ring-2 ring-blue-800'
-                    : 'bg-zinc-800 hover:bg-zinc-700'
-                }`}
-                onClick={() => selectSlide(index)}
-              >
-                <span
-                  className={`text-2xl font-semibold ${
-                    index === activeSlideIndex ? 'text-white' : 'text-zinc-400'
-                  }`}
-                >
-                  {index + 1}
-                </span>
-                {slides.length > 1 && (
-                  <div className="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <Tooltip content="Delete slide" side="left">
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteSlide(index);
-                        }}
-                        aria-label="Delete slide"
+          <div ref={parentRef} className="flex flex-1 flex-col overflow-auto p-4">
+            <div
+              style={{
+                height: `${virtualizer.getTotalSize()}px`,
+                width: '100%',
+                position: 'relative',
+              }}
+            >
+              {virtualizer.getVirtualItems().map((virtualItem) => {
+                const index = virtualItem.index;
+                const slide = slides[index];
+                return (
+                  <div
+                    key={virtualItem.key}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: `${virtualItem.size}px`,
+                      transform: `translateY(${virtualItem.start}px)`,
+                    }}
+                  >
+                    <div
+                      className={`group relative flex aspect-video cursor-pointer items-center justify-center rounded-lg transition-all ${
+                        index === activeSlideIndex
+                          ? 'ring-2 ring-blue-800'
+                          : 'bg-zinc-800 hover:bg-zinc-700'
+                      }`}
+                      onClick={() => selectSlide(index)}
+                    >
+                      <span
+                        className={`text-2xl font-semibold ${
+                          index === activeSlideIndex ? 'text-white' : 'text-zinc-400'
+                        }`}
                       >
-                        <AiOutlineDelete size={16} />
-                      </Button>
-                    </Tooltip>
+                        {index + 1}
+                      </span>
+                      {slides.length > 1 && (
+                        <div className="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-100">
+                          <Tooltip content="Delete slide" side="left">
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteSlide(index);
+                              }}
+                              aria-label="Delete slide"
+                            >
+                              <AiOutlineDelete size={16} />
+                            </Button>
+                          </Tooltip>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
+                );
+              })}
+            </div>
           </div>
           <div className="mt-2 border-t border-zinc-800/50 p-4">
             <Button variant="secondary" onClick={addSlide} className="w-full">

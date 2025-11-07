@@ -1,4 +1,6 @@
-import { useRef, useImperativeHandle, forwardRef, useEffect, useCallback } from 'react';
+import { useRef, useImperativeHandle, forwardRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { useSlideVisibility } from '../hooks/useSlideVisibility';
 import Slide from './Slide';
 import type { SlideData } from '../types';
 
@@ -14,117 +16,78 @@ export interface SlidesListHandle {
 
 const SlidesList = forwardRef<SlidesListHandle, SlidesListProps>(
   ({ slides, activeSlideIndex, onActiveSlideChange }, ref) => {
-    const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
-    const containerRef = useRef<HTMLDivElement>(null);
-    const isProgrammaticScrollRef = useRef(false);
-    const scrollTimeoutRef = useRef<number | null>(null);
+    const parentRef = useRef<HTMLDivElement>(null);
+
+    // Virtualizer: 768px slide height + 64px gap = 832px per item
+    const virtualizer = useVirtualizer({
+      count: slides.length,
+      getScrollElement: () => parentRef.current?.parentElement || null,
+      estimateSize: () => 832,
+      overscan: 1,
+    });
+
+    // Use custom hook for slide visibility detection
+    const { getSlideRef, pauseDetection } = useSlideVisibility({
+      onVisibleSlideChange: onActiveSlideChange,
+      threshold: 0.5,
+    });
 
     useImperativeHandle(ref, () => ({
       scrollToSlide: (index: number) => {
-        isProgrammaticScrollRef.current = true;
+        // Pause visibility detection during programmatic scroll
+        pauseDetection();
 
-        // Clear any existing timeout
-        if (scrollTimeoutRef.current !== null) {
-          clearTimeout(scrollTimeoutRef.current);
-        }
-
-        const slideElement = slideRefs.current[index];
-        const scrollContainer = containerRef.current?.parentElement;
-
-        if (slideElement && scrollContainer) {
-          // Get positions relative to the scroll container
-          const containerRect = scrollContainer.getBoundingClientRect();
-          const slideRect = slideElement.getBoundingClientRect();
-          const offset = 20; // 20px space above the slide
-
-          // Calculate scroll position
-          const scrollTop = slideRect.top - containerRect.top + scrollContainer.scrollTop - offset;
-
-          scrollContainer.scrollTo({
-            top: scrollTop,
-            behavior: 'smooth',
-          });
-        }
-
-        // Use a more reliable approach: listen for scroll end
-        const resetFlag = () => {
-          isProgrammaticScrollRef.current = false;
-          scrollTimeoutRef.current = null;
-        };
-
-        // Fallback timeout in case scroll event doesn't fire
-        scrollTimeoutRef.current = window.setTimeout(resetFlag, 1500);
-      },
-    }));
-
-    // Memoize the callback to prevent unnecessary observer recreation
-    const handleIntersection = useCallback(
-      (entries: IntersectionObserverEntry[]) => {
-        if (isProgrammaticScrollRef.current) {
-          return;
-        }
-
-        // Only process entries that are becoming more visible (entering)
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-            const index = slideRefs.current.findIndex((el) => el === entry.target);
-            if (index !== -1) {
-              onActiveSlideChange(index);
-            }
-          }
+        // Use virtualizer to scroll to the item
+        virtualizer.scrollToIndex(index, {
+          align: 'start',
+          behavior: 'smooth',
         });
       },
-      [onActiveSlideChange]
-    );
-
-    useEffect(() => {
-      const observerOptions = {
-        root: null, // Use viewport as root for more reliable detection
-        threshold: 0.5, // Single threshold at 50% visibility
-        rootMargin: '0px',
-      };
-
-      const observer = new IntersectionObserver(handleIntersection, observerOptions);
-
-      slideRefs.current.forEach((slide) => {
-        if (slide) {
-          observer.observe(slide);
-        }
-      });
-
-      return () => {
-        observer.disconnect();
-      };
-    }, [slides.length, handleIntersection]);
-
-    // Cleanup scroll timeout on unmount
-    useEffect(() => {
-      return () => {
-        if (scrollTimeoutRef.current !== null) {
-          clearTimeout(scrollTimeoutRef.current);
-        }
-      };
-    }, []);
+    }));
 
     const handleSlideClick = (index: number) => {
       onActiveSlideChange(index);
     };
 
+    const virtualItems = virtualizer.getVirtualItems();
+
     return (
-      <div ref={containerRef} className="flex flex-col items-center gap-16 p-4">
-        {slides.map((slide, index) => (
-          <Slide
-            key={slide.id}
-            ref={(el) => {
-              slideRefs.current[index] = el;
-            }}
-            isActive={index === activeSlideIndex}
-            onClick={() => handleSlideClick(index)}
-            elements={slide.elements}
-            selectedElementId={slide.selectedElementId}
-            slideIndex={index}
-          />
-        ))}
+      <div ref={parentRef} className="flex flex-col items-center gap-16 p-4">
+        <div
+          style={{
+            height: `${virtualizer.getTotalSize()}px`,
+            width: '100%',
+            position: 'relative',
+          }}
+        >
+          {virtualItems.map((virtualItem) => {
+            const index = virtualItem.index;
+            const slide = slides[index];
+            return (
+              <div
+                key={virtualItem.key}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: '50%',
+                  transform: `translate(-50%, ${virtualItem.start}px)`,
+                  width: '100%',
+                  display: 'flex',
+                  justifyContent: 'center',
+                }}
+              >
+                <Slide
+                  ref={getSlideRef(index)}
+                  isActive={index === activeSlideIndex}
+                  onClick={() => handleSlideClick(index)}
+                  elements={slide.elements}
+                  selectedElementId={slide.selectedElementId}
+                  slideIndex={index}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   }

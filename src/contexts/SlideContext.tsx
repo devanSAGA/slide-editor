@@ -2,9 +2,16 @@ import { createContext, useContext, useState, useRef, ReactNode, useEffect, useM
 import type { SlideData, TextElement } from '../types';
 import { ElementState } from '../types';
 import { SlidesListHandle } from '../components/SlidesList';
-import { useStorage, useMutation, useUndo, useRedo, useCanUndo, useCanRedo } from '../liveblocks.config';
+import {
+  useStorage,
+  useMutation,
+  useUndo,
+  useRedo,
+  useCanUndo,
+  useCanRedo,
+} from '../liveblocks.config';
 
-const INITIAL_NUMBER_OF_SLIDES = 4;
+const INITIAL_NUMBER_OF_SLIDES = 1;
 
 interface SlideContextValue {
   // State
@@ -183,30 +190,27 @@ export function SlideProvider({ children }: SlideProviderProps) {
   }, []);
 
   // Mutation to select an element
-  const selectElement = useMutation(
-    ({ storage }, slideIndex: number, elementId: string | null) => {
-      const currentSlides = storage.get('slides') || [];
-      const updatedSlides = currentSlides.map((slide, index) => {
-        if (index !== slideIndex) return slide;
+  const selectElement = useMutation(({ storage }, slideIndex: number, elementId: string | null) => {
+    const currentSlides = storage.get('slides') || [];
+    const updatedSlides = currentSlides.map((slide, index) => {
+      if (index !== slideIndex) return slide;
 
-        return {
-          ...slide,
-          selectedElementId: elementId,
-          elements: (slide.elements || []).map((el) => {
-            if (elementId && el.id === elementId && el.state === ElementState.DEFAULT) {
-              return { ...el, state: ElementState.SELECTED };
-            }
-            if (el.id !== elementId && el.state !== ElementState.DEFAULT) {
-              return { ...el, state: ElementState.DEFAULT };
-            }
-            return el;
-          }),
-        };
-      });
-      storage.set('slides', updatedSlides as any);
-    },
-    []
-  );
+      return {
+        ...slide,
+        selectedElementId: elementId,
+        elements: (slide.elements || []).map((el) => {
+          if (elementId && el.id === elementId && el.state === ElementState.DEFAULT) {
+            return { ...el, state: ElementState.SELECTED };
+          }
+          if (el.id !== elementId && el.state !== ElementState.DEFAULT) {
+            return { ...el, state: ElementState.DEFAULT };
+          }
+          return el;
+        }),
+      };
+    });
+    storage.set('slides', updatedSlides as any);
+  }, []);
 
   // Mutation to set element state
   const setElementState = useMutation(
@@ -218,7 +222,9 @@ export function SlideProvider({ children }: SlideProviderProps) {
         return {
           ...slide,
           selectedElementId: state === ElementState.DEFAULT ? null : slide.selectedElementId,
-          elements: (slide.elements || []).map((el) => (el.id === elementId ? { ...el, state } : el)),
+          elements: (slide.elements || []).map((el) =>
+            el.id === elementId ? { ...el, state } : el
+          ),
         };
       });
       storage.set('slides', updatedSlides as any);
@@ -244,7 +250,6 @@ export function SlideProvider({ children }: SlideProviderProps) {
     },
     []
   );
-
 
   const value: SlideContextValue = {
     slides,
