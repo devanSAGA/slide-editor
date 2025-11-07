@@ -1,6 +1,8 @@
 import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
 import { FiPlus } from 'react-icons/fi';
 import { useSlides } from '../contexts/SlideContext';
+import Button from './Button';
+import Tooltip from './Tooltip';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -12,17 +14,20 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   return (
     <div
       className={`flex h-full flex-col border-r border-zinc-800/50 text-zinc-300 transition-all duration-300 ${
-        isCollapsed ? 'w-[52px]' : 'w-[300px]'
+        isCollapsed ? 'w-[48px]' : 'w-[240px]'
       }`}
     >
-      <div className={`flex items-center justify-end ${isCollapsed ? 'p-4 pb-0' : 'p-4 pb-0'}`}>
-        <button onClick={onToggle} aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
-          {isCollapsed ? (
-            <GoSidebarExpand size={20} className="text-zinc-400 hover:text-white" />
-          ) : (
-            <GoSidebarCollapse size={20} className="text-zinc-400 hover:text-white" />
-          )}
-        </button>
+      <div className={`flex items-center justify-end ${isCollapsed ? 'p-2 pb-0' : 'p-2'}`}>
+        <Tooltip content={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} side="right">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggle}
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {isCollapsed ? <GoSidebarExpand size={20} /> : <GoSidebarCollapse size={20} />}
+          </Button>
+        </Tooltip>
       </div>
       {!isCollapsed && (
         <>
@@ -48,13 +53,10 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             ))}
           </div>
           <div className="mt-2 border-t border-zinc-800/50 p-4">
-            <button
-              onClick={addSlide}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-700 px-4 py-2 text-sm text-zinc-200 transition-colors hover:bg-zinc-600"
-            >
+            <Button variant="secondary" onClick={addSlide} className="w-full">
               <FiPlus size={16} />
               New Slide
-            </button>
+            </Button>
           </div>
         </>
       )}
