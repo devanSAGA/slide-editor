@@ -1,5 +1,7 @@
+import { FiPlus } from 'react-icons/fi';
 import SlidesList from './SlidesList';
 import Toolbar from './Toolbar';
+import Button from './Button';
 import { useSlides } from '../contexts/SlideContext';
 
 export default function Content() {
@@ -15,7 +17,14 @@ export default function Content() {
           onActiveSlideChange={setActiveSlideIndex}
         />
       </div>
-      <Toolbar onAddTextElement={addTextElement} />
+      <Toolbar>
+        <Toolbar.Item>
+          <Button variant="ghost" onClick={addTextElement}>
+            <FiPlus size={16} />
+            Add Text Element
+          </Button>
+        </Toolbar.Item>
+      </Toolbar>
     </div>
   );
 }
