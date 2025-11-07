@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useRef, ReactNode, useEffect, useM
 import type { SlideData, TextElement } from '../types';
 import { ElementState } from '../types';
 import { SlidesListHandle } from '../components/SlidesList';
-import { useStorage, useMutation } from '../liveblocks.config';
+import { useStorage, useMutation, useUndo, useRedo, useCanUndo, useCanRedo } from '../liveblocks.config';
 
 const INITIAL_NUMBER_OF_SLIDES = 4;
 
@@ -24,6 +24,12 @@ interface SlideContextValue {
   selectElement: (slideIndex: number, elementId: string | null) => void;
   setElementState: (slideIndex: number, elementId: string, state: ElementState) => void;
   updateElement: (slideIndex: number, elementId: string, updates: Partial<TextElement>) => void;
+
+  // History operations
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 const SlideContext = createContext<SlideContextValue | null>(null);
@@ -47,6 +53,12 @@ export function SlideProvider({ children }: SlideProviderProps) {
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const contentRef = useRef<SlidesListHandle>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // History hooks - these are scoped to the current user's changes
+  const undo = useUndo();
+  const redo = useRedo();
+  const canUndo = useCanUndo();
+  const canRedo = useCanRedo();
 
   // Normalize slides to ensure all required fields exist
   // useMemo prevents creating new objects on every render, which would break IntersectionObserver
@@ -233,6 +245,7 @@ export function SlideProvider({ children }: SlideProviderProps) {
     []
   );
 
+
   const value: SlideContextValue = {
     slides,
     activeSlideIndex,
@@ -246,6 +259,10 @@ export function SlideProvider({ children }: SlideProviderProps) {
     selectElement,
     setElementState,
     updateElement,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
   };
 
   return <SlideContext.Provider value={value}>{children}</SlideContext.Provider>;

@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SlideProvider, useSlides } from '../contexts/SlideContext';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import Content from './Content';
@@ -8,8 +9,36 @@ import Content from './Content';
 function SlideEditorContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [searchParams] = useSearchParams();
-  const { selectSlide, slides } = useSlides();
+  const { selectSlide, slides, undo, redo, canUndo, canRedo } = useSlides();
   const hasScrolledToInitialSlideRef = useRef(false);
+
+  const handleUndo = useCallback(() => {
+    if (canUndo) {
+      undo();
+    }
+  }, [undo, canUndo]);
+
+  const handleRedo = useCallback(() => {
+    if (canRedo) {
+      redo();
+    }
+  }, [redo, canRedo]);
+
+  // Setup keyboard shortcuts
+  useKeyboardShortcuts([
+    {
+      key: 'z',
+      ctrl: true,
+      handler: handleUndo,
+      description: 'Undo',
+    },
+    {
+      key: 'y',
+      ctrl: true,
+      handler: handleRedo,
+      description: 'Redo',
+    },
+  ]);
 
   // Handle ?slide=N query parameter - only once on mount
   useEffect(() => {

@@ -7,6 +7,7 @@ import { ElementState } from '../types';
 import Button from './Button';
 import Tooltip from './Tooltip';
 import { useSlides } from '../contexts/SlideContext';
+import { useHistory } from '../liveblocks.config';
 
 interface TextElementProps {
   element: TextElement;
@@ -28,6 +29,7 @@ export default function TextElement({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const clickTimeoutRef = useRef<number | null>(null);
   const { deleteElement, setElementState, updateElement } = useSlides();
+  const history = useHistory();
 
   const isEditing = element.state === ElementState.EDITING;
   const isSelected = element.state === ElementState.SELECTED;
@@ -65,12 +67,25 @@ export default function TextElement({
   };
 
   // Auto-focus textarea when entering edit mode
+  // Also pause history recording during text editing so all keystrokes are grouped as one undo operation
   useEffect(() => {
     if (isEditing && textareaRef.current) {
       textareaRef.current.focus();
       textareaRef.current.select();
+
+      // Only pause history if element was created more than 100ms ago
+      // This allows the initial element creation to be recorded before pausing
+      const timeSinceCreation = Date.now() - element.createdAt;
+      if (timeSinceCreation > 100) {
+        history.pause();
+
+        return () => {
+          // Resume history when exiting edit mode
+          history.resume();
+        };
+      }
     }
-  }, [isEditing]);
+  }, [isEditing, history, element.createdAt]);
 
   const handleClick = (e: React.MouseEvent) => {
     if (!isActive) return;

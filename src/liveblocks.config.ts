@@ -16,4 +16,13 @@ type Storage = {
   slides: LiveSlideData[];
 };
 
-export const { RoomProvider, useStorage, useMutation } = createRoomContext<{}, Storage>(client);
+export const {
+  RoomProvider,
+  useStorage,
+  useMutation,
+  useUndo,
+  useRedo,
+  useCanUndo,
+  useCanRedo,
+  useHistory
+} = createRoomContext<{}, Storage>(client);
