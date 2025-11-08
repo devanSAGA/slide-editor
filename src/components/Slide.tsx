@@ -5,12 +5,11 @@ import type { TextElement } from '../types';
 interface SlideProps {
   isActive: boolean;
   elements: TextElement[];
-  selectedElementId: string | null;
   slideIndex: number;
 }
 
 const Slide = forwardRef<HTMLDivElement, SlideProps>(
-  ({ isActive, elements, selectedElementId, slideIndex }, ref) => {
+  ({ isActive, elements, slideIndex }, ref) => {
     return (
       <div
         ref={ref}
@@ -20,7 +19,6 @@ const Slide = forwardRef<HTMLDivElement, SlideProps>(
       >
         <Canvas
           elements={elements}
-          selectedElementId={selectedElementId}
           isActive={isActive}
           slideIndex={slideIndex}
         />

@@ -15,7 +15,6 @@ import { useSlides } from '../contexts/SlideContext';
 
 interface CanvasProps {
   elements: TextElement[];
-  selectedElementId: string | null;
   isActive: boolean;
   slideIndex: number;
 }
@@ -39,7 +38,7 @@ export default function Canvas({ elements, isActive, slideIndex }: CanvasProps) 
   const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget && isActive) {
       e.stopPropagation();
-      selectElement(slideIndex, null);
+      selectElement(null);
     }
   };
 
@@ -49,7 +48,7 @@ export default function Canvas({ elements, isActive, slideIndex }: CanvasProps) 
 
     if (element && element.state === ElementState.DEFAULT) {
       // Dragging DEFAULT element → transition to SELECTED
-      setElementState(slideIndex, element.id, ElementState.SELECTED);
+      setElementState(element.id, ElementState.SELECTED);
     }
   };
 

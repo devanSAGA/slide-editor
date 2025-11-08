@@ -17,6 +17,8 @@ interface SlideContextValue {
   // State
   slides: SlideData[];
   activeSlideIndex: number;
+  activeElementId: string | null;
+  isLoading: boolean;
   contentRef: React.RefObject<SlidesListHandle | null>;
 
   // Slide operations
@@ -28,8 +30,8 @@ interface SlideContextValue {
   // Element operations
   addTextElement: () => void;
   deleteElement: (slideIndex: number, elementId: string) => void;
-  selectElement: (slideIndex: number, elementId: string | null) => void;
-  setElementState: (slideIndex: number, elementId: string, state: ElementState) => void;
+  selectElement: (elementId: string | null) => void;
+  setElementState: (elementId: string, state: ElementState) => void;
   updateElement: (slideIndex: number, elementId: string, updates: Partial<TextElement>) => void;
 
   // History operations
@@ -45,7 +47,6 @@ const generateInitialSlides = (): SlideData[] => {
   return Array.from({ length: INITIAL_NUMBER_OF_SLIDES }, () => ({
     id: crypto.randomUUID(),
     elements: [],
-    selectedElementId: null,
   }));
 };
 
@@ -57,6 +58,7 @@ export function SlideProvider({ children }: SlideProviderProps) {
   // Get slides from Liveblocks storage and normalize the data
   const rawSlides = useStorage((root) => root.slides);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const [activeElementId, setActiveElementId] = useState<string | null>(null);
   const contentRef = useRef<SlidesListHandle>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -74,7 +76,6 @@ export function SlideProvider({ children }: SlideProviderProps) {
         ? rawSlides.map((slide) => ({
             id: slide?.id || crypto.randomUUID(),
             elements: Array.isArray(slide?.elements) ? slide.elements : [],
-            selectedElementId: slide?.selectedElementId ?? null,
           }))
         : [],
     [rawSlides]
@@ -103,7 +104,6 @@ export function SlideProvider({ children }: SlideProviderProps) {
     const newSlide: SlideData = {
       id: crypto.randomUUID(),
       elements: [],
-      selectedElementId: null,
     };
     const currentSlides = storage.get('slides') || [];
     storage.set('slides', [...currentSlides, newSlide] as any);
@@ -159,16 +159,26 @@ export function SlideProvider({ children }: SlideProviderProps) {
       };
 
       const currentSlides = storage.get('slides') || [];
+
+      // Deselect all elements across all slides
       const updatedSlides = currentSlides.map((slide, index) =>
         index === activeSlideIndex
           ? {
               ...slide,
               elements: [...(slide.elements || []), newElement],
-              selectedElementId: newElementId,
             }
-          : slide
+          : {
+              ...slide,
+              elements: (slide.elements || []).map((el) => ({
+                ...el,
+                state: ElementState.DEFAULT,
+              })),
+            }
       );
       storage.set('slides', updatedSlides as any);
+
+      // Set active element in context
+      setActiveElementId(newElementId);
     },
     [activeSlideIndex]
   );
@@ -182,51 +192,63 @@ export function SlideProvider({ children }: SlideProviderProps) {
       return {
         ...slide,
         elements: (slide.elements || []).filter((el) => el.id !== elementId),
-        selectedElementId: slide.selectedElementId === elementId ? null : slide.selectedElementId,
       };
     });
     storage.set('slides', updatedSlides as any);
+
+    // Clear active element if it was deleted
+    if (activeElementId === elementId) {
+      setActiveElementId(null);
+    }
+  }, [activeElementId]);
+
+  // Mutation to select an element (across all slides)
+  const selectElement = useMutation(({ storage }, elementId: string | null) => {
+    const currentSlides = storage.get('slides') || [];
+
+    // Deselect all elements across all slides, then select the target element
+    const updatedSlides = currentSlides.map((slide) => ({
+      ...slide,
+      elements: (slide.elements || []).map((el) => {
+        if (elementId && el.id === elementId && el.state === ElementState.DEFAULT) {
+          return { ...el, state: ElementState.SELECTED };
+        }
+        if (el.id !== elementId && el.state !== ElementState.DEFAULT) {
+          return { ...el, state: ElementState.DEFAULT };
+        }
+        return el;
+      }),
+    }));
+    storage.set('slides', updatedSlides as any);
+
+    // Update context state
+    setActiveElementId(elementId);
   }, []);
 
-  // Mutation to select an element
-  const selectElement = useMutation(({ storage }, slideIndex: number, elementId: string | null) => {
-    const currentSlides = storage.get('slides') || [];
-    const updatedSlides = currentSlides.map((slide, index) => {
-      if (index !== slideIndex) return slide;
+  // Mutation to set element state (across all slides)
+  const setElementState = useMutation(
+    ({ storage }, elementId: string, state: ElementState) => {
+      const currentSlides = storage.get('slides') || [];
 
-      return {
+      // Update element state across all slides, deselecting others when selecting/editing
+      const updatedSlides = currentSlides.map((slide) => ({
         ...slide,
-        selectedElementId: elementId,
         elements: (slide.elements || []).map((el) => {
-          if (elementId && el.id === elementId && el.state === ElementState.DEFAULT) {
-            return { ...el, state: ElementState.SELECTED };
+          // Update the target element's state
+          if (el.id === elementId) {
+            return { ...el, state };
           }
-          if (el.id !== elementId && el.state !== ElementState.DEFAULT) {
+          // Deselect all other elements when selecting/editing one
+          if (state !== ElementState.DEFAULT && el.state !== ElementState.DEFAULT) {
             return { ...el, state: ElementState.DEFAULT };
           }
           return el;
         }),
-      };
-    });
-    storage.set('slides', updatedSlides as any);
-  }, []);
-
-  // Mutation to set element state
-  const setElementState = useMutation(
-    ({ storage }, slideIndex: number, elementId: string, state: ElementState) => {
-      const currentSlides = storage.get('slides') || [];
-      const updatedSlides = currentSlides.map((slide, index) => {
-        if (index !== slideIndex) return slide;
-
-        return {
-          ...slide,
-          selectedElementId: state === ElementState.DEFAULT ? null : slide.selectedElementId,
-          elements: (slide.elements || []).map((el) =>
-            el.id === elementId ? { ...el, state } : el
-          ),
-        };
-      });
+      }));
       storage.set('slides', updatedSlides as any);
+
+      // Update context state
+      setActiveElementId(state === ElementState.DEFAULT ? null : elementId);
     },
     []
   );
@@ -250,9 +272,14 @@ export function SlideProvider({ children }: SlideProviderProps) {
     []
   );
 
+  // Compute loading state: true if storage not loaded or slides are initializing
+  const isLoading = rawSlides === null || (rawSlides.length === 0 && !isInitialized);
+
   const value: SlideContextValue = {
     slides,
     activeSlideIndex,
+    activeElementId,
+    isLoading,
     contentRef,
     addSlide,
     deleteSlide,

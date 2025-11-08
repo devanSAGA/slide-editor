@@ -103,10 +103,10 @@ export default function TextElement({
     clickTimeoutRef.current = setTimeout(() => {
       if (element.state === ElementState.DEFAULT) {
         // DEFAULT → SELECTED
-        setElementState(slideIndex, element.id, ElementState.SELECTED);
+        setElementState(element.id, ElementState.SELECTED);
       } else if (element.state === ElementState.SELECTED) {
         // SELECTED → EDITING
-        setElementState(slideIndex, element.id, ElementState.EDITING);
+        setElementState(element.id, ElementState.EDITING);
       }
       clickTimeoutRef.current = null;
     }, 200);
@@ -123,18 +123,18 @@ export default function TextElement({
     }
 
     // DEFAULT → EDITING or SELECTED → EDITING
-    setElementState(slideIndex, element.id, ElementState.EDITING);
+    setElementState(element.id, ElementState.EDITING);
   };
 
   const handleBlur = () => {
     // Transition EDITING → DEFAULT (content is already saved via onChange)
-    setElementState(slideIndex, element.id, ElementState.DEFAULT);
+    setElementState(element.id, ElementState.DEFAULT);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       // Exit edit mode without further changes
-      setElementState(slideIndex, element.id, ElementState.DEFAULT);
+      setElementState(element.id, ElementState.DEFAULT);
     } else if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       // Trigger blur which will transition state

@@ -32,24 +32,17 @@ export interface Transform {
   rotation?: number;
 }
 
-export interface BaseElement {
+export interface TextElement {
   id: string;
-  type: string;
-  transform: Transform;
-  createdAt: number;
-}
-
-export interface TextElement extends BaseElement {
   type: 'text';
   content: string;
+  transform: Transform;
   style: TextStyle;
   state: ElementState;
+  createdAt: number;
 }
-
-export type SlideElement = TextElement;
 
 export interface SlideData {
   id: string;
   elements: TextElement[];
-  selectedElementId: string | null;
 }

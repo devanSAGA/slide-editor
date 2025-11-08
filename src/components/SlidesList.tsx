@@ -76,7 +76,6 @@ const SlidesList = forwardRef<SlidesListHandle, SlidesListProps>(
                   ref={getSlideRef(index)}
                   isActive={index === activeSlideIndex}
                   elements={slide.elements}
-                  selectedElementId={slide.selectedElementId}
                   slideIndex={index}
                 />
               </div>
