@@ -45,10 +45,6 @@ const SlidesList = forwardRef<SlidesListHandle, SlidesListProps>(
       },
     }));
 
-    const handleSlideClick = (index: number) => {
-      onActiveSlideChange(index);
-    };
-
     const virtualItems = virtualizer.getVirtualItems();
 
     return (
@@ -79,7 +75,6 @@ const SlidesList = forwardRef<SlidesListHandle, SlidesListProps>(
                 <Slide
                   ref={getSlideRef(index)}
                   isActive={index === activeSlideIndex}
-                  onClick={() => handleSlideClick(index)}
                   elements={slide.elements}
                   selectedElementId={slide.selectedElementId}
                   slideIndex={index}

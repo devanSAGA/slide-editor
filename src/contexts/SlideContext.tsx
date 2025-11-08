@@ -41,7 +41,6 @@ interface SlideContextValue {
 
 const SlideContext = createContext<SlideContextValue | null>(null);
 
-// Generate initial state of 4 slides
 const generateInitialSlides = (): SlideData[] => {
   return Array.from({ length: INITIAL_NUMBER_OF_SLIDES }, () => ({
     id: crypto.randomUUID(),
@@ -68,7 +67,7 @@ export function SlideProvider({ children }: SlideProviderProps) {
   const canRedo = useCanRedo();
 
   // Normalize slides to ensure all required fields exist
-  // useMemo prevents creating new objects on every render, which would break IntersectionObserver
+  // useMemo prevents creating new objects on every render
   const slides: SlideData[] = useMemo(
     () =>
       rawSlides
@@ -92,7 +91,7 @@ export function SlideProvider({ children }: SlideProviderProps) {
 
   // Initialize slides if empty - only after storage is loaded
   useEffect(() => {
-    if (rawSlides !== null && !isInitialized && (!rawSlides || rawSlides.length === 0)) {
+    if (rawSlides !== null && !isInitialized && rawSlides.length === 0) {
       initializeSlides();
     } else if (rawSlides !== null && rawSlides.length > 0) {
       setIsInitialized(true);
@@ -138,7 +137,7 @@ export function SlideProvider({ children }: SlideProviderProps) {
   // Mutation to add a text element
   const addTextElement = useMutation(
     ({ storage }) => {
-      const newElementId = `text-${Date.now()}`;
+      const newElementId = crypto.randomUUID();
       const newElement: TextElement = {
         id: newElementId,
         type: 'text',

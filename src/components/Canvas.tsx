@@ -1,5 +1,12 @@
 import { useRef } from 'react';
-import { DndContext, DragEndEvent, DragStartEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import {
+  DndContext,
+  DragEndEvent,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
 import { restrictToParentElement } from '@dnd-kit/modifiers';
 import TextElementComponent from './TextElement';
 import type { TextElement } from '../types';
@@ -13,12 +20,7 @@ interface CanvasProps {
   slideIndex: number;
 }
 
-export default function Canvas({
-  elements,
-  selectedElementId,
-  isActive,
-  slideIndex,
-}: CanvasProps) {
+export default function Canvas({ elements, isActive, slideIndex }: CanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const { selectElement, setElementState, updateElement } = useSlides();
 
@@ -61,7 +63,7 @@ export default function Canvas({
 
     // Get canvas bounds (excluding padding)
     const canvasRect = canvasRef.current.getBoundingClientRect();
-    const padding = 32; // 8 * 4 = 32px (p-8 in Tailwind)
+    const padding = 32;
     const maxWidth = canvasRect.width - padding * 2;
     const maxHeight = canvasRect.height - padding * 2;
 

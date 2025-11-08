@@ -24,7 +24,6 @@ function SlideEditorContent() {
     }
   }, [redo, canRedo]);
 
-  // Setup keyboard shortcuts
   useKeyboardShortcuts([
     {
       key: 'z',

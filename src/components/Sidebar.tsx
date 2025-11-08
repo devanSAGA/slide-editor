@@ -16,8 +16,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const { slides, activeSlideIndex, addSlide, deleteSlide, selectSlide } = useSlides();
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // Calculate item height: aspect-video (16:9) with 208px width (240-32 for padding)
-  // 208 / 16 * 9 = 117px + 16px gap = 133px per item
+  // Calculate item height: 133px per item
   const virtualizer = useVirtualizer({
     count: slides.length,
     getScrollElement: () => parentRef.current,
@@ -55,7 +54,6 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             >
               {virtualizer.getVirtualItems().map((virtualItem) => {
                 const index = virtualItem.index;
-                const slide = slides[index];
                 return (
                   <div
                     key={virtualItem.key}
