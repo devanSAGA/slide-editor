@@ -40,7 +40,7 @@ function Landing() {
 
   return (
     <div className="flex h-screen items-center justify-center bg-zinc-950">
-      <div className="text-zinc-400">Creating new presentation...</div>
+      <div className="text-zinc-400">Loading presentation...</div>
     </div>
   );
 }

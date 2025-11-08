@@ -6,6 +6,7 @@ import { AiOutlineDelete } from 'react-icons/ai';
 import { useSlides } from '../contexts/SlideContext';
 import Button from './Button';
 import Tooltip from './Tooltip';
+import Skeleton from './Skeleton';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -13,7 +14,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
-  const { slides, activeSlideIndex, addSlide, deleteSlide, selectSlide } = useSlides();
+  const { slides, activeSlideIndex, isLoading, addSlide, deleteSlide, selectSlide } = useSlides();
   const parentRef = useRef<HTMLDivElement>(null);
 
   // Calculate item height: 133px per item
@@ -45,64 +46,70 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
       {!isCollapsed && (
         <>
           <div ref={parentRef} className="flex flex-1 flex-col overflow-auto p-4">
-            <div
-              style={{
-                height: `${virtualizer.getTotalSize()}px`,
-                width: '100%',
-                position: 'relative',
-              }}
-            >
-              {virtualizer.getVirtualItems().map((virtualItem) => {
-                const index = virtualItem.index;
-                return (
-                  <div
-                    key={virtualItem.key}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: `${virtualItem.size}px`,
-                      transform: `translateY(${virtualItem.start}px)`,
-                    }}
-                  >
+            {isLoading ? (
+              <div className="flex flex-col gap-4">
+                <Skeleton height={100} className="aspect-video" />
+              </div>
+            ) : (
+              <div
+                style={{
+                  height: `${virtualizer.getTotalSize()}px`,
+                  width: '100%',
+                  position: 'relative',
+                }}
+              >
+                {virtualizer.getVirtualItems().map((virtualItem) => {
+                  const index = virtualItem.index;
+                  return (
                     <div
-                      className={`group relative flex aspect-video cursor-pointer items-center justify-center rounded-lg transition-all ${
-                        index === activeSlideIndex
-                          ? 'ring-2 ring-blue-800'
-                          : 'bg-zinc-800 hover:bg-zinc-700'
-                      }`}
-                      onClick={() => selectSlide(index)}
+                      key={virtualItem.key}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: `${virtualItem.size}px`,
+                        transform: `translateY(${virtualItem.start}px)`,
+                      }}
                     >
-                      <span
-                        className={`text-2xl font-semibold ${
-                          index === activeSlideIndex ? 'text-white' : 'text-zinc-400'
+                      <div
+                        className={`group relative flex aspect-video cursor-pointer items-center justify-center rounded-lg transition-all ${
+                          index === activeSlideIndex
+                            ? 'ring-2 ring-blue-800'
+                            : 'bg-zinc-800 hover:bg-zinc-700'
                         }`}
+                        onClick={() => selectSlide(index)}
                       >
-                        {index + 1}
-                      </span>
-                      {slides.length > 1 && (
-                        <div className="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-100">
-                          <Tooltip content="Delete slide" side="left">
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteSlide(index);
-                              }}
-                              aria-label="Delete slide"
-                            >
-                              <AiOutlineDelete size={16} />
-                            </Button>
-                          </Tooltip>
-                        </div>
-                      )}
+                        <span
+                          className={`text-2xl font-semibold ${
+                            index === activeSlideIndex ? 'text-white' : 'text-zinc-400'
+                          }`}
+                        >
+                          {index + 1}
+                        </span>
+                        {slides.length > 1 && (
+                          <div className="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-100">
+                            <Tooltip content="Delete slide" side="left">
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteSlide(index);
+                                }}
+                                aria-label="Delete slide"
+                              >
+                                <AiOutlineDelete size={16} />
+                              </Button>
+                            </Tooltip>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <div className="mt-2 border-t border-zinc-800/50 p-4">
             <Button variant="secondary" onClick={addSlide} className="w-full">
