@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
-import { RoomProvider } from './liveblocks.config';
+import { RoomProvider, LiveblocksProvider } from './liveblocks.config';
 import SlideEditor from './components/SlideEditor';
 import { useEffect } from 'react';
 import { ClientSideSuspense } from '@liveblocks/react';
@@ -47,13 +47,15 @@ function Landing() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/room/:roomId" element={<RoomWrapper />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <LiveblocksProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/room/:roomId" element={<RoomWrapper />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </LiveblocksProvider>
   );
 }
 
