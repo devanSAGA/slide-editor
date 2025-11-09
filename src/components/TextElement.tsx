@@ -25,6 +25,7 @@ export default function TextElement({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const clickTimeoutRef = useRef<number | null>(null);
   const elementRef = useRef<HTMLDivElement>(null);
+  const isResizingRef = useRef(false);
   const { deleteElement, updateElement } = useSlides();
   const history = useHistory();
 
@@ -172,6 +173,77 @@ export default function TextElement({
     updateElement(slideIndex, element.id, { content: e.target.value });
   };
 
+  const handleMouseDownResize = (e: React.MouseEvent, edge: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!elementRef.current) return;
+
+    // Mark that we're resizing to block any drag initiation
+    isResizingRef.current = true;
+
+    // Pause history to batch all resize updates into a single undo entry
+    history.pause();
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = element.transform.width;
+    const startHeight = element.transform.height;
+    const startLeft = element.transform.x;
+    const startTop = element.transform.y;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaY = moveEvent.clientY - startY;
+
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+      let newX = startLeft;
+      let newY = startTop;
+
+      // Handle different edges
+      if (edge === 'right') {
+        // Right edge - resize width only
+        newWidth = Math.max(50, startWidth + deltaX);
+      } else if (edge === 'left') {
+        // Left edge - resize width from left side
+        newWidth = Math.max(50, startWidth - deltaX);
+        newX = startLeft + deltaX;
+      } else if (edge === 'bottom') {
+        // Bottom edge - resize height only
+        newHeight = Math.max(30, startHeight + deltaY);
+      } else if (edge === 'top') {
+        // Top edge - resize height from top side
+        newHeight = Math.max(30, startHeight - deltaY);
+        newY = startTop + deltaY;
+      }
+
+      updateElement(slideIndex, element.id, {
+        transform: {
+          ...element.transform,
+          width: newWidth,
+          height: newHeight,
+          x: newX,
+          y: newY,
+        },
+      });
+    };
+
+    const handleMouseUp = () => {
+      // Resume history to create a single undo entry for all resize changes
+      history.resume();
+
+      // Clear resizing flag after a tick to ensure drag doesn't start
+      setTimeout(() => {
+        isResizingRef.current = false;
+      }, 0);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
   return (
     <div
       ref={(node) => {
@@ -189,7 +261,7 @@ export default function TextElement({
             : 'hover:bg-zinc-700/20'
       }`}
       {...attributes}
-      {...listeners}
+      {...(isResizingRef.current ? {} : listeners)}
     >
       {/* Delete button - show when selected and active */}
       {isSelected && isActive && !isEditing && (
@@ -208,6 +280,52 @@ export default function TextElement({
             <AiOutlineDelete size={14} />
           </Button>
         </Tooltip>
+      )}
+
+      {/* Resize handles - show when selected and active */}
+      {isSelected && isActive && !isEditing && (
+        <>
+          {/* Top edge - exclude right corner where delete button is */}
+          <div
+            onMouseDown={(e) => handleMouseDownResize(e, 'top')}
+            className="absolute -top-1 left-0 h-2"
+            style={{
+              right: '30px',
+              zIndex: 20,
+              cursor: 'n-resize',
+              pointerEvents: 'auto',
+              touchAction: 'none',
+            }}
+            title="Resize height"
+          />
+          {/* Bottom edge */}
+          <div
+            onMouseDown={(e) => handleMouseDownResize(e, 'bottom')}
+            className="absolute -bottom-1 left-0 right-0 h-2"
+            style={{ zIndex: 20, cursor: 's-resize', pointerEvents: 'auto', touchAction: 'none' }}
+            title="Resize height"
+          />
+          {/* Left edge */}
+          <div
+            onMouseDown={(e) => handleMouseDownResize(e, 'left')}
+            className="absolute -left-1 bottom-0 top-0 w-2"
+            style={{ zIndex: 20, cursor: 'w-resize', pointerEvents: 'auto', touchAction: 'none' }}
+            title="Resize width"
+          />
+          {/* Right edge - exclude top corner where delete button is */}
+          <div
+            onMouseDown={(e) => handleMouseDownResize(e, 'right')}
+            className="absolute -right-1 bottom-0 w-2"
+            style={{
+              top: '30px',
+              zIndex: 20,
+              cursor: 'e-resize',
+              pointerEvents: 'auto',
+              touchAction: 'none',
+            }}
+            title="Resize width"
+          />
+        </>
       )}
 
       {isEditing ? (
