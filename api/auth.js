@@ -53,7 +53,10 @@ export default async function handler(req, res) {
     session.allow(roomId, session.FULL_ACCESS);
 
     // Return the token
-    const { token } = await session.authorize();
+    const authResult = await session.authorize();
+
+    const tokenData = JSON.parse(authResult.body);
+    const token = tokenData.token;
 
     return res.status(200).json({ token });
   } catch (error) {
