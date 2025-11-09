@@ -14,7 +14,7 @@ A real-time collaborative slide editor built with React 19, enabling multiple us
 
 1. ✅ React as the frontend framework
 2. ✅ Liveblocks as the real-time collaboration backbone
-3. 🚧 User-scoped undo/redo operations (partially implemented, not yet user-scoped)
+3. ✅ Undo/redo operations (working, not yet user-scoped)
 4. ✅ Sharing functionality for both single and multiple slides
 
 ## Features
@@ -22,7 +22,7 @@ A real-time collaborative slide editor built with React 19, enabling multiple us
 - **Real-time Collaboration**: Multiple users can edit the same slide simultaneously with live updates
 - **Text Elements**: Add, edit, and position text elements using an intuitive drag-and-drop interface
 - **Flexible Sharing**: Share links to individual slides or entire presentations for seamless collaboration
-- **Undo/Redo Support**: Basic undo/redo functionality **(currently partially implemented, not yet user-scoped)**
+- **Undo/Redo Support**: Full undo/redo functionality for all text element operations (creation, editing, moving, resizing) **(currently room-scoped, working on user-scoped implementation)**
 - **Responsive Design**: Collapsible sidebar and virtualized rendering for optimal performance with large presentations
 
 ## Tech Stack
@@ -81,7 +81,7 @@ Core UI components like Button and Tooltip are designed for maximum reusability 
 - **Quick Navigation**: Click any sidebar thumbnail to instantly jump to that slide
 - **Deep Linking**: Share URLs with specific slide indices that automatically scroll to the target slide on load
 - **Contextual Tooltips**: Icon-only buttons include helpful tooltips for improved discoverability
-- **Smooth Interactions**: Drag-and-drop positioning with real-time visual feedback
+- **Smooth Interactions**: Drag-and-drop positioning and resizing for text elements
 
 ### Pending / Yet to be implemented
 
@@ -128,6 +128,21 @@ src/
 ├── main.tsx         # Application entry point
 └── App.tsx          # Root component
 ```
+
+## AI Assistance in Development
+
+### Where AI Helped
+
+- **Technology Decision Making**: When faced with the choice between implementing Liveblocks and YJS for real-time collaboration, AI provided a thorough comparison of both approaches and their trade-offs. This analysis helped determine that Liveblocks alone would be sufficient for the project's requirements, avoiding unnecessary complexity
+- **Planning & Architecture Discussions**: Used Claude's plan mode to discuss implementation approaches before writing code. This upfront planning significantly reduced the need for rework and helped avoid architectural mistakes
+- **Code Review & Quality Assessment**: AI assistance proved valuable for reviewing code and identifying areas for improvement, helping maintain code quality throughout development
+- **Documentation**: This README is created with the help of AI as well. I mentioned the points I want to cover and it did articulate them better and structured the doc.
+
+### Where AI Had Limitations
+
+- **Scalability vs Quick Solutions**: While AI could generate working solutions quickly, they sometimes prioritized immediate functionality over maintainable architecture. Early implementations had excessive prop drilling and hacky workarounds instead of leveraging proper state management patterns like Context API. This required manual refactoring to achieve better scalability
+- **UX and Visual Polish**: Generated solutions didn't always account for user experience implications. For example, animations were implemented without considering visual flicker or how they might break UI in other parts of the application. These issues required manual review and adjustment
+- **Debugging Complex State Issues**: When undo/redo functionality was not working as expected, AI debugging assistance couldn't identify the root cause of the problem. The issue required manual investigation and analysis to resolve, highlighting the limitations of AI in complex state management debugging
 
 ## License
 
