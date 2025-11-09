@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useRef, ReactNode, useEffect, useMemo } from 'react';
 import type { SlideData, TextElement } from '../types';
-import { ElementState } from '../types';
 import { SlidesListHandle } from '../components/SlidesList';
 import {
   useStorage,
@@ -30,8 +29,6 @@ interface SlideContextValue {
   // Element operations
   addTextElement: () => void;
   deleteElement: (slideIndex: number, elementId: string) => void;
-  selectElement: (elementId: string | null) => void;
-  setElementState: (elementId: string, state: ElementState) => void;
   updateElement: (slideIndex: number, elementId: string, updates: Partial<TextElement>) => void;
 
   // History operations
@@ -154,26 +151,19 @@ export function SlideProvider({ children }: SlideProviderProps) {
           color: '#e4e4e7',
           textAlign: 'left',
         },
-        state: ElementState.SELECTED,
         createdAt: Date.now(),
       };
 
       const currentSlides = storage.get('slides') || [];
 
-      // Deselect all elements across all slides
+      // Simply add the new element to the active slide
       const updatedSlides = currentSlides.map((slide, index) =>
         index === activeSlideIndex
           ? {
               ...slide,
               elements: [...(slide.elements || []), newElement],
             }
-          : {
-              ...slide,
-              elements: (slide.elements || []).map((el) => ({
-                ...el,
-                state: ElementState.DEFAULT,
-              })),
-            }
+          : slide
       );
       storage.set('slides', updatedSlides as any);
 
@@ -202,56 +192,6 @@ export function SlideProvider({ children }: SlideProviderProps) {
     }
   }, [activeElementId]);
 
-  // Mutation to select an element (across all slides)
-  const selectElement = useMutation(({ storage }, elementId: string | null) => {
-    const currentSlides = storage.get('slides') || [];
-
-    // Deselect all elements across all slides, then select the target element
-    const updatedSlides = currentSlides.map((slide) => ({
-      ...slide,
-      elements: (slide.elements || []).map((el) => {
-        if (elementId && el.id === elementId && el.state === ElementState.DEFAULT) {
-          return { ...el, state: ElementState.SELECTED };
-        }
-        if (el.id !== elementId && el.state !== ElementState.DEFAULT) {
-          return { ...el, state: ElementState.DEFAULT };
-        }
-        return el;
-      }),
-    }));
-    storage.set('slides', updatedSlides as any);
-
-    // Update context state
-    setActiveElementId(elementId);
-  }, []);
-
-  // Mutation to set element state (across all slides)
-  const setElementState = useMutation(
-    ({ storage }, elementId: string, state: ElementState) => {
-      const currentSlides = storage.get('slides') || [];
-
-      // Update element state across all slides, deselecting others when selecting/editing
-      const updatedSlides = currentSlides.map((slide) => ({
-        ...slide,
-        elements: (slide.elements || []).map((el) => {
-          // Update the target element's state
-          if (el.id === elementId) {
-            return { ...el, state };
-          }
-          // Deselect all other elements when selecting/editing one
-          if (state !== ElementState.DEFAULT && el.state !== ElementState.DEFAULT) {
-            return { ...el, state: ElementState.DEFAULT };
-          }
-          return el;
-        }),
-      }));
-      storage.set('slides', updatedSlides as any);
-
-      // Update context state
-      setActiveElementId(state === ElementState.DEFAULT ? null : elementId);
-    },
-    []
-  );
 
   // Mutation to update an element
   const updateElement = useMutation(
@@ -287,8 +227,6 @@ export function SlideProvider({ children }: SlideProviderProps) {
     setActiveSlideIndex,
     addTextElement,
     deleteElement,
-    selectElement,
-    setElementState,
     updateElement,
     undo,
     redo,

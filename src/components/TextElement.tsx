@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { AiOutlineDelete } from 'react-icons/ai';
@@ -13,26 +13,33 @@ interface TextElementProps {
   element: TextElement;
   isActive: boolean;
   slideIndex: number;
+  isNewlyCreated?: boolean;
 }
 
-/**
- * TextElement with 3 states managed via ElementState enum:
- * - DEFAULT: No focus ring, draggable
- * - SELECTED: Shows focus ring, draggable
- * - EDITING: Allows text editing, not draggable
- */
 export default function TextElement({
   element,
   isActive,
   slideIndex,
+  isNewlyCreated = false,
 }: TextElementProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const clickTimeoutRef = useRef<number | null>(null);
-  const { deleteElement, setElementState, updateElement } = useSlides();
+  const elementRef = useRef<HTMLDivElement>(null);
+  const { deleteElement, updateElement } = useSlides();
   const history = useHistory();
 
-  const isEditing = element.state === ElementState.EDITING;
-  const isSelected = element.state === ElementState.SELECTED;
+  /**
+   * TextElement with 3 states managed via ElementState enum:
+   * - DEFAULT: No focus ring, draggable
+   * - SELECTED: Shows focus ring, draggable
+   * - EDITING: Allows text editing, not draggable
+   */
+  const [textElementState, setTextElementState] = useState<ElementState>(
+    isNewlyCreated ? ElementState.SELECTED : ElementState.DEFAULT
+  );
+
+  const isEditing = textElementState === ElementState.EDITING;
+  const isSelected = textElementState === ElementState.SELECTED;
   const isDraggable = isActive && !isEditing;
 
   // Setup draggable
@@ -87,6 +94,24 @@ export default function TextElement({
     }
   }, [isEditing, history, element.createdAt]);
 
+  // Click outside element to reset state to DEFAULT
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      // If element is selected or editing and click is outside element, reset to default
+      if (
+        (textElementState === ElementState.SELECTED || textElementState === ElementState.EDITING) &&
+        elementRef.current
+      ) {
+        if (!elementRef.current.contains(e.target as Node)) {
+          setTextElementState(ElementState.DEFAULT);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [textElementState]);
+
   const handleClick = (e: React.MouseEvent) => {
     if (!isActive) return;
     e.stopPropagation();
@@ -101,12 +126,12 @@ export default function TextElement({
 
     // Use timeout to distinguish between single and double click
     clickTimeoutRef.current = setTimeout(() => {
-      if (element.state === ElementState.DEFAULT) {
+      if (textElementState === ElementState.DEFAULT) {
         // DEFAULT → SELECTED
-        setElementState(element.id, ElementState.SELECTED);
-      } else if (element.state === ElementState.SELECTED) {
+        setTextElementState(ElementState.SELECTED);
+      } else if (textElementState === ElementState.SELECTED) {
         // SELECTED → EDITING
-        setElementState(element.id, ElementState.EDITING);
+        setTextElementState(ElementState.EDITING);
       }
       clickTimeoutRef.current = null;
     }, 200);
@@ -123,18 +148,18 @@ export default function TextElement({
     }
 
     // DEFAULT → EDITING or SELECTED → EDITING
-    setElementState(element.id, ElementState.EDITING);
+    setTextElementState(ElementState.EDITING);
   };
 
   const handleBlur = () => {
     // Transition EDITING → DEFAULT (content is already saved via onChange)
-    setElementState(element.id, ElementState.DEFAULT);
+    setTextElementState(ElementState.DEFAULT);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       // Exit edit mode without further changes
-      setElementState(element.id, ElementState.DEFAULT);
+      setTextElementState(ElementState.DEFAULT);
     } else if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       // Trigger blur which will transition state
@@ -149,7 +174,10 @@ export default function TextElement({
 
   return (
     <div
-      ref={setNodeRef}
+      ref={(node) => {
+        setNodeRef(node);
+        if (node) elementRef.current = node;
+      }}
       style={style}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}

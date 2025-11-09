@@ -38,7 +38,6 @@ export interface TextElement {
   content: string;
   transform: Transform;
   style: TextStyle;
-  state: ElementState;
   createdAt: number;
 }
 

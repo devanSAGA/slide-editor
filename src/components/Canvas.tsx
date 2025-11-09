@@ -10,7 +10,6 @@ import {
 import { restrictToParentElement } from '@dnd-kit/modifiers';
 import TextElementComponent from './TextElement';
 import type { TextElement } from '../types';
-import { ElementState } from '../types';
 import { useSlides } from '../contexts/SlideContext';
 
 interface CanvasProps {
@@ -21,7 +20,7 @@ interface CanvasProps {
 
 export default function Canvas({ elements, isActive, slideIndex }: CanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
-  const { selectElement, setElementState, updateElement } = useSlides();
+  const { updateElement, activeElementId } = useSlides();
 
   // Defensive: ensure elements is always an array
   const safeElements = Array.isArray(elements) ? elements : [];
@@ -38,17 +37,6 @@ export default function Canvas({ elements, isActive, slideIndex }: CanvasProps) 
   const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget && isActive) {
       e.stopPropagation();
-      selectElement(null);
-    }
-  };
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const element = safeElements.find((el) => el.id === active.id);
-
-    if (element && element.state === ElementState.DEFAULT) {
-      // Dragging DEFAULT element → transition to SELECTED
-      setElementState(element.id, ElementState.SELECTED);
     }
   };
 
@@ -84,12 +72,7 @@ export default function Canvas({ elements, isActive, slideIndex }: CanvasProps) 
   };
 
   return (
-    <DndContext
-      sensors={sensors}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      modifiers={[restrictToParentElement]}
-    >
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd} modifiers={[restrictToParentElement]}>
       <div
         ref={canvasRef}
         className="relative h-full w-full rounded-lg p-8"
@@ -102,6 +85,7 @@ export default function Canvas({ elements, isActive, slideIndex }: CanvasProps) 
             element={element}
             isActive={isActive}
             slideIndex={slideIndex}
+            isNewlyCreated={element.id === activeElementId}
           />
         ))}
       </div>
