@@ -6,7 +6,6 @@ import { AiOutlineDelete } from 'react-icons/ai';
 import { useSlides } from '../contexts/SlideContext';
 import Button from './Button';
 import Tooltip from './Tooltip';
-import Skeleton from './Skeleton';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -14,7 +13,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
-  const { slides, activeSlideIndex, isLoading, addSlide, deleteSlide, selectSlide } = useSlides();
+  const { slides, activeSlideIndex, addSlide, deleteSlide, selectSlide } = useSlides();
   const parentRef = useRef<HTMLDivElement>(null);
 
   // Calculate item height: 133px per item
@@ -46,18 +45,13 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
       {!isCollapsed && (
         <>
           <div ref={parentRef} className="flex flex-1 flex-col overflow-auto p-4">
-            {isLoading ? (
-              <div className="flex flex-col gap-4">
-                <Skeleton height={100} className="aspect-video" />
-              </div>
-            ) : (
-              <div
-                style={{
-                  height: `${virtualizer.getTotalSize()}px`,
-                  width: '100%',
-                  position: 'relative',
-                }}
-              >
+            <div
+              style={{
+                height: `${virtualizer.getTotalSize()}px`,
+                width: '100%',
+                position: 'relative',
+              }}
+            >
                 {virtualizer.getVirtualItems().map((virtualItem) => {
                   const index = virtualItem.index;
                   return (
@@ -109,7 +103,6 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                   );
                 })}
               </div>
-            )}
           </div>
           <div className="mt-2 border-t border-zinc-800/50 p-4">
             <Button variant="secondary" onClick={addSlide} className="w-full">

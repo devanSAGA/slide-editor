@@ -2,6 +2,7 @@ import { LiveblocksProvider, ClientSideSuspense } from '@liveblocks/react';
 import { RoomProvider } from '@liveblocks/react/suspense';
 import { LiveList } from '@liveblocks/client';
 import SlideEditor from './components/SlideEditor';
+import Skeleton from './components/Skeleton';
 import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 
@@ -9,7 +10,10 @@ function RoomWrapper() {
   const { roomId = '' } = useParams();
 
   return (
-    <LiveblocksProvider publicApiKey={import.meta.env.VITE_LIVEBLOCKS_PUBLIC_KEY}>
+    <LiveblocksProvider
+      //@ts-ignore
+      publicApiKey={import.meta.env.VITE_LIVEBLOCKS_PUBLIC_KEY}
+    >
       <RoomProvider
         id={roomId}
         initialStorage={() => ({
@@ -18,8 +22,8 @@ function RoomWrapper() {
       >
         <ClientSideSuspense
           fallback={
-            <div className="flex h-screen items-center justify-center bg-zinc-950">
-              <div className="text-zinc-400">Loading room...</div>
+            <div className="flex h-screen items-center justify-center bg-zinc-950 p-4">
+              <Skeleton width={1368} height={768} />
             </div>
           }
         >

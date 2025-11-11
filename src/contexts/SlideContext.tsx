@@ -16,7 +16,6 @@ interface SlideContextValue {
   slides: SlideData[];
   activeSlideIndex: number;
   activeElementId: string | null;
-  isLoading: boolean;
   contentRef: React.RefObject<SlidesListHandle | null>;
 
   // Slide operations
@@ -203,14 +202,10 @@ export function SlideProvider({ children }: SlideProviderProps) {
     []
   );
 
-  // Compute loading state: true if storage not loaded
-  const isLoading = slides === null || slides.length === 0;
-
   const value: SlideContextValue = {
     slides,
     activeSlideIndex,
     activeElementId,
-    isLoading,
     contentRef,
     addSlide,
     deleteSlide,
