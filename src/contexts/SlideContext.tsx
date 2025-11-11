@@ -56,27 +56,6 @@ export function SlideProvider({ children }: SlideProviderProps) {
   const canUndo = useCanUndo();
   const canRedo = useCanRedo();
 
-  // Initialize storage with default slide on mount
-  const initializeStorage = useMutation(({ storage }) => {
-    const slides = storage.get('slides') as LiveList<LiveObject<SlideData>>;
-
-    // Only initialize if slides don't exist or are empty
-    if (!slides || slides.length === 0) {
-      const newSlidesList = new LiveList<LiveObject<SlideData>>([
-        new LiveObject<SlideData>({
-          id: crypto.randomUUID(),
-          elements: new LiveList<LiveObject<TextElement>>([]),
-        }),
-      ]);
-      storage.set('slides', newSlidesList);
-    }
-  }, []);
-
-  // Initialize storage on component mount
-  useEffect(() => {
-    initializeStorage();
-  }, [initializeStorage]);
-
   const addSlide = useMutation(({ storage }) => {
     const slides = storage.get('slides') as LiveList<LiveObject<SlideData>>;
 

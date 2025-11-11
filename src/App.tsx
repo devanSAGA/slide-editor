@@ -1,10 +1,11 @@
 import { LiveblocksProvider, ClientSideSuspense } from '@liveblocks/react';
 import { RoomProvider } from '@liveblocks/react/suspense';
-import { LiveList } from '@liveblocks/client';
+import { LiveList, LiveObject } from '@liveblocks/client';
 import SlideEditor from './components/SlideEditor';
 import Skeleton from './components/Skeleton';
 import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { SlideData, TextElement } from './types';
 
 function RoomWrapper() {
   const { roomId = '' } = useParams();
@@ -17,7 +18,12 @@ function RoomWrapper() {
       <RoomProvider
         id={roomId}
         initialStorage={() => ({
-          slides: new LiveList([]),
+          slides: new LiveList<LiveObject<SlideData>>([
+            new LiveObject<SlideData>({
+              id: crypto.randomUUID(),
+              elements: new LiveList<LiveObject<TextElement>>([]),
+            }),
+          ]),
         })}
       >
         <ClientSideSuspense
