@@ -7,7 +7,7 @@ import { ElementState } from '../types';
 import Button from './Button';
 import Tooltip from './Tooltip';
 import { useSlides } from '../contexts/SlideContext';
-import { useHistory } from '../liveblocks.config';
+import { useHistory } from '@liveblocks/react';
 
 interface TextElementProps {
   element: TextElement;
@@ -83,7 +83,7 @@ export default function TextElement({
 
       // Only pause history if element was created more than 100ms ago
       // This allows the initial element creation to be recorded before pausing
-      const timeSinceCreation = Date.now() - element.createdAt;
+      const timeSinceCreation = Date.now() - (element.createdAt || Date.now());
       if (timeSinceCreation > 100) {
         history.pause();
 

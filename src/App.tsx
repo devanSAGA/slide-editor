@@ -1,30 +1,32 @@
-import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
-import { RoomProvider } from './liveblocks.config';
+import { LiveblocksProvider, ClientSideSuspense } from '@liveblocks/react';
+import { RoomProvider } from '@liveblocks/react/suspense';
+import { LiveList } from '@liveblocks/client';
 import SlideEditor from './components/SlideEditor';
+import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import { ClientSideSuspense } from '@liveblocks/react';
 
-// Component to handle room routing
 function RoomWrapper() {
-  const { roomId } = useParams();
+  const { roomId = '' } = useParams();
 
   return (
-    <RoomProvider
-      id={roomId}
-      initialStorage={() => ({
-        slides: [],
-      })}
-    >
-      <ClientSideSuspense
-        fallback={
-          <div className="flex h-screen items-center justify-center bg-zinc-950">
-            <div className="text-zinc-400">Loading room...</div>
-          </div>
-        }
+    <LiveblocksProvider publicApiKey={import.meta.env.VITE_LIVEBLOCKS_PUBLIC_KEY}>
+      <RoomProvider
+        id={roomId}
+        initialStorage={() => ({
+          slides: new LiveList([]),
+        })}
       >
-        <SlideEditor />
-      </ClientSideSuspense>
-    </RoomProvider>
+        <ClientSideSuspense
+          fallback={
+            <div className="flex h-screen items-center justify-center bg-zinc-950">
+              <div className="text-zinc-400">Loading room...</div>
+            </div>
+          }
+        >
+          <SlideEditor />
+        </ClientSideSuspense>
+      </RoomProvider>
+    </LiveblocksProvider>
   );
 }
 

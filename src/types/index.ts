@@ -1,7 +1,9 @@
+import { LiveList, LiveObject } from '@liveblocks/client';
+
 export enum ElementState {
-  DEFAULT = 'default',   // No focus border, draggable
+  DEFAULT = 'default', // No focus border, draggable
   SELECTED = 'selected', // Shows focus border, draggable
-  EDITING = 'editing',   // Allows text editing, not draggable
+  EDITING = 'editing', // Allows text editing, not draggable
 }
 
 export interface TextStyle {
@@ -33,15 +35,21 @@ export interface Transform {
 }
 
 export interface TextElement {
+  [key: string]: any;
   id: string;
   type: 'text';
   content: string;
   transform: Transform;
   style: TextStyle;
-  createdAt: number;
+  createdAt?: number;
 }
 
-export interface SlideData {
+export type SlideData = {
+  [key: string]: any;
   id: string;
-  elements: TextElement[];
-}
+  elements: LiveList<LiveObject<TextElement>>;
+};
+
+export type Storage = {
+  slides: LiveList<LiveObject<SlideData>>;
+};

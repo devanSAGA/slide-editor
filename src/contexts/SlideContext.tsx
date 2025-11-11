@@ -1,16 +1,15 @@
 import { createContext, useContext, useState, useRef, ReactNode, useEffect, useMemo } from 'react';
-import type { SlideData, TextElement } from '../types';
-import { SlidesListHandle } from '../components/SlidesList';
+import { LiveList, LiveObject } from '@liveblocks/client';
 import {
+  useUndo,
+  useCanUndo,
+  useRedo,
+  useCanRedo,
   useStorage,
   useMutation,
-  useUndo,
-  useRedo,
-  useCanUndo,
-  useCanRedo,
-} from '../liveblocks.config';
-
-const INITIAL_NUMBER_OF_SLIDES = 1;
+} from '@liveblocks/react/suspense';
+import { SlidesListHandle } from '../components/SlidesList';
+import { SlideData, TextElement } from '../types';
 
 interface SlideContextValue {
   // State
@@ -40,24 +39,17 @@ interface SlideContextValue {
 
 const SlideContext = createContext<SlideContextValue | null>(null);
 
-const generateInitialSlides = (): SlideData[] => {
-  return Array.from({ length: INITIAL_NUMBER_OF_SLIDES }, () => ({
-    id: crypto.randomUUID(),
-    elements: [],
-  }));
-};
-
 interface SlideProviderProps {
   children: ReactNode;
 }
 
 export function SlideProvider({ children }: SlideProviderProps) {
-  // Get slides from Liveblocks storage and normalize the data
-  const rawSlides = useStorage((root) => root.slides);
+  const slides = useStorage((root) => {
+    return root.slides;
+  }) as SlideData[];
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [activeElementId, setActiveElementId] = useState<string | null>(null);
   const contentRef = useRef<SlidesListHandle>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
 
   // History hooks - these are scoped to the current user's changes
   const undo = useUndo();
@@ -65,60 +57,51 @@ export function SlideProvider({ children }: SlideProviderProps) {
   const canUndo = useCanUndo();
   const canRedo = useCanRedo();
 
-  // Normalize slides to ensure all required fields exist
-  // useMemo prevents creating new objects on every render
-  const slides: SlideData[] = useMemo(
-    () =>
-      rawSlides
-        ? rawSlides.map((slide) => ({
-            id: slide?.id || crypto.randomUUID(),
-            elements: Array.isArray(slide?.elements) ? slide.elements : [],
-          }))
-        : [],
-    [rawSlides]
-  );
+  // Initialize storage with default slide on mount
+  const initializeStorage = useMutation(({ storage }) => {
+    const slides = storage.get('slides') as LiveList<LiveObject<SlideData>>;
 
-  // Mutation to initialize slides
-  const initializeSlides = useMutation(({ storage }) => {
-    const currentSlides = storage.get('slides');
-    if (!currentSlides || currentSlides.length === 0) {
-      storage.set('slides', generateInitialSlides() as any);
+    // Only initialize if slides don't exist or are empty
+    if (!slides || slides.length === 0) {
+      const newSlidesList = new LiveList<LiveObject<SlideData>>([
+        new LiveObject<SlideData>({
+          id: crypto.randomUUID(),
+          elements: new LiveList<LiveObject<TextElement>>([]),
+        }),
+      ]);
+      storage.set('slides', newSlidesList);
     }
-    setIsInitialized(true);
   }, []);
 
-  // Initialize slides if empty - only after storage is loaded
+  // Initialize storage on component mount
   useEffect(() => {
-    if (rawSlides !== null && !isInitialized && rawSlides.length === 0) {
-      initializeSlides();
-    } else if (rawSlides !== null && rawSlides.length > 0) {
-      setIsInitialized(true);
-    }
-  }, [rawSlides, isInitialized, initializeSlides]);
+    initializeStorage();
+  }, [initializeStorage]);
 
-  // Mutation to add a new slide
   const addSlide = useMutation(({ storage }) => {
-    const newSlide: SlideData = {
-      id: crypto.randomUUID(),
-      elements: [],
-    };
-    const currentSlides = storage.get('slides') || [];
-    storage.set('slides', [...currentSlides, newSlide] as any);
+    const slides = storage.get('slides') as LiveList<LiveObject<SlideData>>;
+
+    if (slides) {
+      const newSlide = new LiveObject<SlideData>({
+        id: crypto.randomUUID(),
+        elements: new LiveList<LiveObject<TextElement>>([]),
+      });
+      slides.push(newSlide);
+    }
   }, []);
 
   // Mutation to delete a slide
   const deleteSlide = useMutation(
     ({ storage }, index: number) => {
-      const currentSlides = storage.get('slides') || [];
-      // Don't delete if it's the last slide
-      if (currentSlides.length <= 1) return;
+      const slides = storage.get('slides') as LiveList<LiveObject<SlideData>>;
 
-      const newSlides = currentSlides.filter((_, i) => i !== index);
-      storage.set('slides', newSlides as any);
+      if (!slides || slides.length <= 1) return;
+
+      slides.delete(index);
 
       // Adjust active slide index if needed
-      if (activeSlideIndex >= newSlides.length) {
-        setActiveSlideIndex(newSlides.length - 1);
+      if (activeSlideIndex >= slides.length) {
+        setActiveSlideIndex(slides.length - 1);
       } else if (activeSlideIndex > index) {
         setActiveSlideIndex(activeSlideIndex - 1);
       }
@@ -152,68 +135,76 @@ export function SlideProvider({ children }: SlideProviderProps) {
           textAlign: 'left',
         },
         createdAt: Date.now(),
+        // +++ add index signature if needed, see previous suggestions
       };
 
-      const currentSlides = storage.get('slides') || [];
+      const slides = storage.get('slides') as LiveList<LiveObject<SlideData>>;
 
-      // Simply add the new element to the active slide
-      const updatedSlides = currentSlides.map((slide, index) =>
-        index === activeSlideIndex
-          ? {
-              ...slide,
-              elements: [...(slide.elements || []), newElement],
-            }
-          : slide
-      );
-      storage.set('slides', updatedSlides as any);
+      if (!slides || slides.length === 0) return;
 
-      // Set active element in context
+      const activeSlide = slides.get(activeSlideIndex);
+      if (!activeSlide) return;
+
+      const elements = activeSlide.get('elements') as LiveList<LiveObject<TextElement>>;
+
+      if (!elements) return;
+
+      const elementLiveObject = new LiveObject<TextElement>(newElement);
+
+      elements.push(elementLiveObject);
+
       setActiveElementId(newElementId);
     },
     [activeSlideIndex]
   );
 
   // Mutation to delete an element
-  const deleteElement = useMutation(({ storage }, slideIndex: number, elementId: string) => {
-    const currentSlides = storage.get('slides') || [];
-    const updatedSlides = currentSlides.map((slide, index) => {
-      if (index !== slideIndex) return slide;
+  const deleteElement = useMutation(
+    ({ storage }, slideIndex: number, elementId: string) => {
+      const slides = storage.get('slides') as LiveList<LiveObject<SlideData>>;
+      if (!slides || slides.length <= slideIndex) return;
 
-      return {
-        ...slide,
-        elements: (slide.elements || []).filter((el) => el.id !== elementId),
-      };
-    });
-    storage.set('slides', updatedSlides as any);
+      const slide = slides.get(slideIndex);
+      if (!slide) return;
 
-    // Clear active element if it was deleted
-    if (activeElementId === elementId) {
-      setActiveElementId(null);
-    }
-  }, [activeElementId]);
+      const elements = slide.get('elements') as LiveList<LiveObject<TextElement>>;
+      if (!elements) return;
 
+      // Find index of element to delete
+      const elementIndex = elements.findIndex((el) => el.get('id') === elementId);
+      if (elementIndex === -1) return;
 
-  // Mutation to update an element
+      elements.delete(elementIndex);
+
+      // Clear active element if deleted
+      if (activeElementId === elementId) {
+        setActiveElementId(null);
+      }
+    },
+    [activeElementId]
+  );
+
   const updateElement = useMutation(
     ({ storage }, slideIndex: number, elementId: string, updates: Partial<TextElement>) => {
-      const currentSlides = storage.get('slides') || [];
-      const updatedSlides = currentSlides.map((slide, index) =>
-        index === slideIndex
-          ? {
-              ...slide,
-              elements: (slide.elements || []).map((el) =>
-                el.id === elementId ? { ...el, ...updates } : el
-              ),
-            }
-          : slide
-      );
-      storage.set('slides', updatedSlides as any);
+      const slides = storage.get('slides') as LiveList<LiveObject<SlideData>>;
+      if (!slides || slides.length <= slideIndex) return;
+
+      const slide = slides.get(slideIndex);
+      if (!slide) return;
+
+      const elements = slide.get('elements') as LiveList<LiveObject<TextElement>>;
+      if (!elements) return;
+
+      const element = elements.find((el) => el.get('id') === elementId);
+      if (!element) return;
+
+      element.update(updates);
     },
     []
   );
 
-  // Compute loading state: true if storage not loaded or slides are initializing
-  const isLoading = rawSlides === null || (rawSlides.length === 0 && !isInitialized);
+  // Compute loading state: true if storage not loaded
+  const isLoading = slides === null || slides.length === 0;
 
   const value: SlideContextValue = {
     slides,
