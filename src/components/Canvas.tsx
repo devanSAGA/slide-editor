@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { LiveList, LiveObject } from '@liveblocks/client';
 import {
   DndContext,
   DragEndEvent,
@@ -13,7 +14,7 @@ import type { TextElement } from '../types';
 import { useSlides } from '../contexts/SlideContext';
 
 interface CanvasProps {
-  elements: TextElement[];
+  elements: LiveList<LiveObject<TextElement>> | TextElement[];
   isActive: boolean;
   slideIndex: number;
 }

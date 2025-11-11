@@ -14,7 +14,7 @@ A real-time collaborative slide editor built with React 19, enabling multiple us
 
 1. ✅ React as the frontend framework
 2. ✅ Liveblocks as the real-time collaboration backbone
-3. ✅ Undo/redo operations (working, not yet user-scoped)
+3. ✅ User-scoped undo/redo operations
 4. ✅ Sharing functionality for both single and multiple slides
 
 ## Features
@@ -22,7 +22,7 @@ A real-time collaborative slide editor built with React 19, enabling multiple us
 - **Real-time Collaboration**: Multiple users can edit the same slide simultaneously with live updates
 - **Text Elements**: Add, edit, and position text elements using an intuitive drag-and-drop interface
 - **Flexible Sharing**: Share links to individual slides or entire presentations for seamless collaboration
-- **Undo/Redo Support**: Full undo/redo functionality for all text element operations (creation, editing, moving, resizing) **(currently room-scoped, working on user-scoped implementation)**
+- **User-Scoped Undo/Redo**: Full undo/redo functionality for all text element operations (creation, editing, moving, resizing). Each user has their own undo/redo history.
 - **Responsive Design**: Collapsible sidebar and virtualized rendering for optimal performance with large presentations
 
 ## Tech Stack
@@ -86,7 +86,6 @@ Core UI components like Button and Tooltip are designed for maximum reusability 
 ### Pending / Yet to be implemented
 
 - **Drag-and-Drop Reordering**: Rearrange slides by dragging thumbnails in the sidebar
-- **Resizable Text Elements**: Click and drag element edges to adjust dimensions
 - **Rich Text Formatting**: Controls for font size, alignment, color, and other text properties
 - **Enhanced Slide Management**: Add delete slide button in main editor for better discoverability when sidebar is collapsed
 

@@ -1,10 +1,11 @@
 import { forwardRef } from 'react';
+import { LiveList, LiveObject } from '@liveblocks/client';
 import Canvas from './Canvas';
 import type { TextElement } from '../types';
 
 interface SlideProps {
   isActive: boolean;
-  elements: TextElement[];
+  elements: LiveList<LiveObject<TextElement>> | TextElement[];
   slideIndex: number;
 }
 
